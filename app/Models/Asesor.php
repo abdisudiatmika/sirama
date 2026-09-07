@@ -34,4 +34,14 @@ class Asesor extends Model
     {
         return $this->hasMany(PenugasanAsesor::class);
     }
+
+    public function penilaian(): HasMany
+    {
+        return $this->hasMany(Penilaian::class);
+    }
+
+    public function validasiCpmk(): HasMany
+    {
+        return $this->hasMany(ValidasiCpmk::class);
+    }
 }

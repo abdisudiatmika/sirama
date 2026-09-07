@@ -8,27 +8,33 @@
                     <tr>
                         <th class="px-6 py-3">Nama Mahasiswa</th>
                         <th class="px-6 py-3">Prodi</th>
+                        <th class="px-6 py-3">Skema</th>
                         <th class="px-6 py-3">Progres Penilaian</th>
+                        <th class="px-6 py-3 text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @forelse ($asesor?->penugasan ?? [] as $penugasan)
+                    @forelse ($daftar as $item)
                         <tr class="hover:bg-slate-50">
-                            <td class="px-6 py-3 font-medium text-slate-900">{{ $penugasan->mahasiswa->user->name }}</td>
-                            <td class="px-6 py-3 text-slate-600">{{ $penugasan->mahasiswa->prodi->nama }}</td>
-                            <td class="px-6 py-3 text-slate-500">Modul asesmen belum aktif</td>
+                            <td class="px-6 py-3 font-medium text-slate-900">{{ $item->mahasiswa->user->name }}</td>
+                            <td class="px-6 py-3 text-slate-600">{{ $item->mahasiswa->prodi->nama }}</td>
+                            <td class="px-6 py-3 text-slate-600">{{ $item->mahasiswa->skema->nama ?? '—' }}</td>
+                            <td class="px-6 py-3">
+                                <x-badge :color="$item->selesai === $item->total && $item->total > 0 ? 'emerald' : 'amber'">
+                                    {{ $item->selesai }}/{{ $item->total }}
+                                </x-badge>
+                            </td>
+                            <td class="px-6 py-3 text-right">
+                                <a href="{{ route('asesor.mahasiswa', $item->mahasiswa) }}" wire:navigate class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Nilai →</a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="px-6 py-8 text-center text-slate-400">Belum ada mahasiswa yang ditugaskan kepada Anda.</td>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">Belum ada mahasiswa yang berkasnya siap dinilai.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <div class="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-        Modul penilaian VATM per CPMK akan tersedia pada fase pengembangan berikutnya.
     </div>
 </div>

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Mahasiswa extends Model
 {
@@ -37,5 +38,40 @@ class Mahasiswa extends Model
     public function penugasanAsesor(): HasMany
     {
         return $this->hasMany(PenugasanAsesor::class)->orderBy('urutan');
+    }
+
+    public function biodata(): HasOne
+    {
+        return $this->hasOne(Biodata::class);
+    }
+
+    public function pendidikanTerakhir(): HasOne
+    {
+        return $this->hasOne(PendidikanTerakhir::class);
+    }
+
+    public function bukti(): HasMany
+    {
+        return $this->hasMany(Bukti::class);
+    }
+
+    public function dokumenCv(): HasOne
+    {
+        return $this->hasOne(DokumenCv::class);
+    }
+
+    public function pernyataan(): HasOne
+    {
+        return $this->hasOne(Pernyataan::class);
+    }
+
+    public function pengajuanMk(): HasMany
+    {
+        return $this->hasMany(PengajuanMk::class);
+    }
+
+    public function hasilPleno(): HasMany
+    {
+        return $this->hasMany(HasilPleno::class);
     }
 }

@@ -11,8 +11,19 @@
                 <p class="mt-2 text-sm text-slate-400">Belum ditetapkan oleh admin prodi.</p>
             @endif
 
-            <div class="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                Wizard pengisian Form 1–6 akan tersedia pada fase pengembangan berikutnya.
+            <div class="mt-6 flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 p-6">
+                <div>
+                    <p class="text-sm font-semibold text-indigo-900">
+                        @if ($mahasiswa && $mahasiswa->status_berkas !== 'draft')
+                            Status berkas: {{ str_replace('_', ' ', ucfirst($mahasiswa->status_berkas)) }}
+                        @else
+                            Lengkapi Form 1–6 untuk mengajukan berkas RPL Anda.
+                        @endif
+                    </p>
+                </div>
+                <a href="{{ route('mahasiswa.wizard') }}" wire:navigate class="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    Buka Pengajuan RPL
+                </a>
             </div>
         </div>
 

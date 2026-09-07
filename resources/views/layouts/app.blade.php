@@ -24,6 +24,7 @@
     } elseif ($user?->hasRole('mahasiswa')) {
         $navItems = [
             ['label' => 'Dashboard', 'route' => 'mahasiswa.dashboard', 'icon' => 'home'],
+            ['label' => 'Pengajuan RPL', 'route' => 'mahasiswa.wizard', 'icon' => 'book-open'],
         ];
     }
 
