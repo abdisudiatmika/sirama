@@ -105,6 +105,11 @@ class Wizard extends Component
 
     public ?string $pernyataan_tanggal = null;
 
+    // Form 5 — Self Assessment
+    public bool $showSelfAssessmentModal = false;
+
+    public ?int $selfAssessmentPengajuanId = null;
+
     // Form 6 — MK Asal
     public bool $showMkAsalModal = false;
 
@@ -481,6 +486,18 @@ class Wizard extends Component
     }
 
     // ================= Form 5 — Self Assessment =================
+
+    public function bukaSelfAssessment(int $pengajuanMkId): void
+    {
+        $this->selfAssessmentPengajuanId = $pengajuanMkId;
+        $this->showSelfAssessmentModal = true;
+    }
+
+    public function closeSelfAssessmentModal(): void
+    {
+        $this->showSelfAssessmentModal = false;
+        $this->selfAssessmentPengajuanId = null;
+    }
 
     public function setSelfAssessment(int $selfAssessmentId, string $status): void
     {

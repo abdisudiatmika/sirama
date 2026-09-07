@@ -375,38 +375,26 @@
                     @endunless
                 </div>
 
-                <div class="mt-6 space-y-4">
+                <div class="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-200">
                     @foreach ($pengajuanList as $pengajuan)
-                        <div class="rounded-xl border border-slate-200">
-                            <div class="flex items-center justify-between bg-slate-50 px-4 py-2.5">
-                                <p class="text-sm font-semibold text-slate-800">{{ $pengajuan->matakuliah->kode }} — {{ $pengajuan->matakuliah->nama }}</p>
-                                @unless ($readOnly)
-                                    <button wire:click="centangSemuaMampu({{ $pengajuan->id }})" class="text-xs font-medium text-indigo-600 hover:text-indigo-500">Centang Semua "Mampu"</button>
-                                @endunless
+                        @php
+                            $totalMk = $pengajuan->selfAssessment->count();
+                            $terisiMk = $pengajuan->selfAssessment->whereNotNull('status')->count();
+                        @endphp
+                        <button
+                            type="button"
+                            wire:click="bukaSelfAssessment({{ $pengajuan->id }})"
+                            class="flex w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-slate-50"
+                        >
+                            <div>
+                                <p class="text-sm font-medium text-slate-900">{{ $pengajuan->matakuliah->kode }} — {{ $pengajuan->matakuliah->nama }}</p>
+                                <p class="text-xs text-slate-500">{{ $totalMk }} CPMK</p>
                             </div>
-                            <div class="divide-y divide-slate-100">
-                                @foreach ($pengajuan->selfAssessment as $sa)
-                                    <div class="flex items-center justify-between gap-4 px-4 py-3">
-                                        <div>
-                                            <p class="text-sm font-medium text-slate-900">{{ $sa->cpmk->kode }}</p>
-                                            <p class="text-xs text-slate-500">{{ $sa->cpmk->deskripsi }}</p>
-                                        </div>
-                                        <div class="flex flex-shrink-0 gap-2">
-                                            <button
-                                                wire:click="setSelfAssessment({{ $sa->id }}, 'mampu')"
-                                                @disabled($readOnly)
-                                                class="rounded-lg px-3 py-1.5 text-xs font-medium {{ $sa->status === 'mampu' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600' }}"
-                                            >Mampu</button>
-                                            <button
-                                                wire:click="setSelfAssessment({{ $sa->id }}, 'belum_mampu')"
-                                                @disabled($readOnly)
-                                                class="rounded-lg px-3 py-1.5 text-xs font-medium {{ $sa->status === 'belum_mampu' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600' }}"
-                                            >Belum Mampu</button>
-                                        </div>
-                                    </div>
-                                @endforeach
+                            <div class="flex flex-shrink-0 items-center gap-3">
+                                <x-badge :color="$terisiMk === $totalMk ? 'emerald' : 'slate'">{{ $terisiMk }}/{{ $totalMk }} terisi</x-badge>
+                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                             </div>
-                        </div>
+                        </button>
                     @endforeach
                 </div>
 
@@ -583,6 +571,51 @@
                 <button wire:click="simpanLengkapi" class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Simpan</button>
             </div>
         </div>
+    </x-modal>
+
+    {{-- ============ MODAL: SELF ASSESSMENT ============ --}}
+    @php
+        $selfAssessmentPengajuan = $selfAssessmentPengajuanId ? $pengajuanList->firstWhere('id', $selfAssessmentPengajuanId) : null;
+    @endphp
+    <x-modal :show="$showSelfAssessmentModal" :title="$selfAssessmentPengajuan ? $selfAssessmentPengajuan->matakuliah->kode.' — '.$selfAssessmentPengajuan->matakuliah->nama : 'Self-Assessment CPMK'" max-width="2xl" onclose="closeSelfAssessmentModal">
+        @if ($selfAssessmentPengajuan)
+            <div class="space-y-4">
+                @unless ($readOnly)
+                    <div class="flex justify-end">
+                        <button type="button" wire:click="centangSemuaMampu({{ $selfAssessmentPengajuan->id }})" class="text-xs font-medium text-indigo-600 hover:text-indigo-500">Centang Semua "Mampu"</button>
+                    </div>
+                @endunless
+
+                <div class="max-h-96 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
+                    @foreach ($selfAssessmentPengajuan->selfAssessment as $sa)
+                        <div class="flex items-center justify-between gap-4 px-4 py-3">
+                            <div>
+                                <p class="text-sm font-medium text-slate-900">{{ $sa->cpmk->kode }}</p>
+                                <p class="text-xs text-slate-500">{{ $sa->cpmk->deskripsi }}</p>
+                            </div>
+                            <div class="flex flex-shrink-0 gap-2">
+                                <button
+                                    type="button"
+                                    wire:click="setSelfAssessment({{ $sa->id }}, 'mampu')"
+                                    @disabled($readOnly)
+                                    class="rounded-lg px-3 py-1.5 text-xs font-medium {{ $sa->status === 'mampu' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600' }}"
+                                >Mampu</button>
+                                <button
+                                    type="button"
+                                    wire:click="setSelfAssessment({{ $sa->id }}, 'belum_mampu')"
+                                    @disabled($readOnly)
+                                    class="rounded-lg px-3 py-1.5 text-xs font-medium {{ $sa->status === 'belum_mampu' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600' }}"
+                                >Belum Mampu</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button type="button" wire:click="closeSelfAssessmentModal" class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Selesai</button>
+                </div>
+            </div>
+        @endif
     </x-modal>
 
     {{-- ============ MODAL: MK ASAL ============ --}}
