@@ -15,8 +15,13 @@ class Dashboard extends Component
     {
         $mahasiswa = Auth::user()->mahasiswa()->with('skema', 'penugasanAsesor.asesor.user')->first();
 
+        $pengembalianTerakhir = $mahasiswa?->status_berkas === 'dikembalikan'
+            ? $mahasiswa->pengembalianBerkas()->with('admin')->first()
+            : null;
+
         return view('livewire.mahasiswa.dashboard', [
             'mahasiswa' => $mahasiswa,
+            'pengembalianTerakhir' => $pengembalianTerakhir,
         ]);
     }
 }

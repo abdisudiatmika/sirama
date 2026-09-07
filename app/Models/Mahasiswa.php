@@ -74,4 +74,9 @@ class Mahasiswa extends Model
     {
         return $this->hasMany(HasilPleno::class);
     }
+
+    public function pengembalianBerkas(): HasMany
+    {
+        return $this->hasMany(PengembalianBerkas::class)->latest();
+    }
 }

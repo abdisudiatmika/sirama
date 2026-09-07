@@ -5,9 +5,11 @@ namespace App\Livewire\AdminProdi;
 use App\Livewire\Concerns\InteractsWithProdiContext;
 use App\Models\Asesor;
 use App\Models\Mahasiswa;
+use App\Models\PengembalianBerkas;
 use App\Models\PenugasanAsesor;
 use App\Models\Skema;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -52,6 +54,13 @@ class MahasiswaManager extends Component
 
     /** @var array<int,int|null> urutan(1..3) => asesor_id */
     public array $slotAsesor = [1 => null, 2 => null, 3 => null];
+
+    // Kembalikan berkas
+    public bool $showPengembalianModal = false;
+
+    public ?int $pengembalianMahasiswaId = null;
+
+    public string $alasanPengembalian = '';
 
     public function mount(): void
     {
@@ -231,6 +240,56 @@ class MahasiswaManager extends Component
         $this->asesorMahasiswaId = null;
         $this->asesorSearch = '';
         $this->slotAsesor = [1 => null, 2 => null, 3 => null];
+    }
+
+    // --- Kembalikan Berkas ---
+
+    public function bukaPengembalian(int $mahasiswaId): void
+    {
+        $mhs = Mahasiswa::findOrFail($mahasiswaId);
+        $this->assertProdiAuthorized($mhs->prodi_id);
+
+        if (! in_array($mhs->status_berkas, ['diajukan', 'sedang_dinilai', 'selesai_dinilai'])) {
+            session()->flash('error', 'Hanya berkas yang sudah diajukan yang bisa dikembalikan.');
+
+            return;
+        }
+
+        $this->pengembalianMahasiswaId = $mahasiswaId;
+        $this->alasanPengembalian = '';
+        $this->showPengembalianModal = true;
+    }
+
+    public function simpanPengembalian(): void
+    {
+        $this->validate([
+            'alasanPengembalian' => ['required', 'string', 'min:10'],
+        ], [
+            'alasanPengembalian.required' => 'Alasan pengembalian wajib diisi.',
+            'alasanPengembalian.min' => 'Jelaskan alasan pengembalian lebih rinci (minimal 10 karakter).',
+        ]);
+
+        $mhs = Mahasiswa::findOrFail($this->pengembalianMahasiswaId);
+        $this->assertProdiAuthorized($mhs->prodi_id);
+
+        PengembalianBerkas::create([
+            'mahasiswa_id' => $mhs->id,
+            'alasan' => $this->alasanPengembalian,
+            'dikembalikan_oleh' => Auth::id(),
+        ]);
+
+        $mhs->update(['status_berkas' => 'dikembalikan']);
+
+        session()->flash('success', 'Berkas dikembalikan ke mahasiswa untuk diperbaiki.');
+        $this->closePengembalianModal();
+    }
+
+    public function closePengembalianModal(): void
+    {
+        $this->showPengembalianModal = false;
+        $this->pengembalianMahasiswaId = null;
+        $this->alasanPengembalian = '';
+        $this->resetErrorBag();
     }
 
     public function render()

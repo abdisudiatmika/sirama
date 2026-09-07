@@ -77,6 +77,9 @@
                             </td>
                             <td class="px-6 py-3">
                                 <div class="flex justify-end gap-3">
+                                    @if (in_array($mhs->status_berkas, ['diajukan', 'sedang_dinilai', 'selesai_dinilai']))
+                                        <button wire:click="bukaPengembalian({{ $mhs->id }})" class="font-medium text-amber-600 hover:text-amber-700">Kembalikan Berkas</button>
+                                    @endif
                                     <button wire:click="resetPassword({{ $mhs->id }})" wire:confirm="Buat password baru untuk akun ini?" class="font-medium text-slate-600 hover:text-slate-800">Reset Password</button>
                                     <button wire:click="edit({{ $mhs->id }})" class="font-medium text-indigo-600 hover:text-indigo-500">Ubah</button>
                                 </div>
@@ -174,6 +177,23 @@
             <div class="flex justify-end gap-3 pt-2">
                 <button type="button" wire:click="closeAsesorModal" class="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
                 <button wire:click="simpanAsesor" class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Simpan Penugasan</button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal :show="$showPengembalianModal" title="Kembalikan Berkas ke Mahasiswa" max-width="xl" onclose="closePengembalianModal">
+        <div class="space-y-4">
+            <p class="text-sm text-slate-500">Berkas akan dibuka kembali untuk diedit mahasiswa. Alasan ini akan tercatat dan ditampilkan kepada mahasiswa.</p>
+
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-slate-700">Alasan Pengembalian</label>
+                <textarea wire:model="alasanPengembalian" rows="4" class="block w-full rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600" placeholder="Contoh: Bukti pengalaman kerja untuk MK Akuntansi Keuangan 1 belum sesuai, mohon lampirkan surat keterangan kerja yang valid."></textarea>
+                @error('alasanPengembalian') <p class="mt-1.5 text-sm text-rose-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" wire:click="closePengembalianModal" class="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
+                <button wire:click="simpanPengembalian" wire:confirm="Berkas akan dibuka kembali untuk mahasiswa edit. Lanjutkan?" class="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">Kembalikan Berkas</button>
             </div>
         </div>
     </x-modal>

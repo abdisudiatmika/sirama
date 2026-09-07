@@ -650,6 +650,10 @@ class Wizard extends Component
             ? $buktiList
             : collect();
 
+        $pengembalianTerakhir = $mhs->status_berkas === 'dikembalikan'
+            ? $mhs->pengembalianBerkas()->with('admin')->first()
+            : null;
+
         return view('livewire.mahasiswa.wizard', [
             'mhs' => $mhs,
             'matakuliahOptions' => $matakuliahOptions,
@@ -658,6 +662,7 @@ class Wizard extends Component
             'lengkapiBuktiOptions' => $lengkapiBuktiOptions,
             'pengajuanBerbuktiFormal' => $this->step >= 6 ? $this->pengajuanBerbuktiFormal() : collect(),
             'readOnly' => $this->isReadOnly(),
+            'pengembalianTerakhir' => $pengembalianTerakhir,
         ]);
     }
 }
