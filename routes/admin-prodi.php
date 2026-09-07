@@ -4,6 +4,8 @@ use App\Livewire\AdminProdi\AsesorDirectory;
 use App\Livewire\AdminProdi\Dashboard;
 use App\Livewire\AdminProdi\MahasiswaManager;
 use App\Livewire\AdminProdi\MatakuliahManager;
+use App\Livewire\AdminProdi\MonitoringPenilaian;
+use App\Livewire\AdminProdi\Rekapitulasi;
 use App\Livewire\AdminProdi\SkemaManager;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +18,6 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/skema', SkemaManager::class)->name('skema');
         Route::get('/asesor', AsesorDirectory::class)->name('asesor');
         Route::get('/mahasiswa', MahasiswaManager::class)->name('mahasiswa');
+        Route::get('/monitoring', MonitoringPenilaian::class)->name('monitoring');
+        Route::get('/monitoring/{mahasiswa}', Rekapitulasi::class)->name('rekapitulasi');
     });

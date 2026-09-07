@@ -16,6 +16,7 @@
             ['label' => 'Skema', 'route' => 'admin-prodi.skema', 'icon' => 'squares'],
             ['label' => 'Asesor', 'route' => 'admin-prodi.asesor', 'icon' => 'academic-cap'],
             ['label' => 'Mahasiswa', 'route' => 'admin-prodi.mahasiswa', 'icon' => 'users'],
+            ['label' => 'Monitoring & Rekap', 'route' => 'admin-prodi.monitoring', 'icon' => 'squares'],
         ];
     } elseif ($user?->hasRole('asesor')) {
         $navItems = [
