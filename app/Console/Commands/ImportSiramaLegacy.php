@@ -71,11 +71,11 @@ class ImportSiramaLegacy extends Command
     {
         Config::set('database.connections.sirama_legacy', [
             'driver' => 'mysql',
-            'host' => '127.0.0.1',
-            'port' => 3306,
-            'database' => 'sirama_legacy',
-            'username' => 'root',
-            'password' => 'Abdi085237',
+            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+            'port' => env('LEGACY_DB_PORT', 3306),
+            'database' => env('LEGACY_DB_DATABASE', 'sirama_legacy'),
+            'username' => env('LEGACY_DB_USERNAME', 'root'),
+            'password' => env('LEGACY_DB_PASSWORD', 'Abdi085237'),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
         ]);
