@@ -59,7 +59,6 @@
                             <td class="px-6 py-3 font-mono text-slate-600">{{ $mhs->nim }}</td>
                             <td class="px-6 py-3">
                                 <p class="font-medium text-slate-900">{{ $mhs->user->name }}</p>
-                                <p class="text-xs text-slate-500">{{ $mhs->user->username }} · angkatan {{ $mhs->tahun_masuk }}</p>
                             </td>
                             <td class="px-6 py-3 text-slate-600">{{ $mhs->skema->nama ?? '—' }}</td>
                             <td class="px-6 py-3">
