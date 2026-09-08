@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AdminProdi\RekapitulasiExcelController;
+use App\Http\Controllers\AdminProdi\RekapitulasiPdfController;
 use App\Livewire\AdminProdi\AsesorDirectory;
 use App\Livewire\AdminProdi\Dashboard;
 use App\Livewire\AdminProdi\MahasiswaManager;
@@ -20,4 +22,6 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/mahasiswa', MahasiswaManager::class)->name('mahasiswa');
         Route::get('/monitoring', MonitoringPenilaian::class)->name('monitoring');
         Route::get('/monitoring/{mahasiswa}', Rekapitulasi::class)->name('rekapitulasi');
+        Route::get('/monitoring/{mahasiswa}/pdf', RekapitulasiPdfController::class)->name('rekapitulasi.pdf');
+        Route::get('/monitoring/{mahasiswa}/excel', RekapitulasiExcelController::class)->name('rekapitulasi.excel');
     });

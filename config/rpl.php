@@ -40,4 +40,18 @@ return [
         ['min' => 0, 'max' => 39, 'huruf' => 'E', 'bobot' => 0.00],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Identitas Institusi (kop surat cetak/export)
+    |--------------------------------------------------------------------------
+    */
+
+    'institusi' => [
+        'nama' => 'Politeknik Negeri Bali',
+        'kementerian' => 'Kementerian Pendidikan Tinggi, Sains, dan Teknologi',
+        'alamat' => 'Kampus Bukit, Jimbaran, Kuta Selatan, Badung, Bali 80364',
+        'kontak' => 'Telp. (0361) 701981 · Faks. (0361) 701128 · www.pnb.ac.id',
+        'logo_path' => null, // isi path absolut file logo bila tersedia
+    ],
+
 ];

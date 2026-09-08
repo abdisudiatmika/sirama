@@ -4,7 +4,7 @@ namespace App\Livewire\AdminProdi;
 
 use App\Models\HasilPleno;
 use App\Models\Mahasiswa;
-use App\Services\PenilaianService;
+use App\Services\RekapitulasiService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -38,55 +38,10 @@ class Rekapitulasi extends Component
         session()->flash('success', 'Status rekognisi disimpan.');
     }
 
-    public function render(PenilaianService $service)
+    public function render(RekapitulasiService $service)
     {
-        $mahasiswa = Mahasiswa::with([
-            'user', 'prodi', 'skema.matakuliah' => fn ($q) => $q->orderBy('semester')->orderBy('nama'),
-            'skema.matakuliah.cpmk',
-            'biodata', 'pendidikanTerakhir',
-            'penugasanAsesor.asesor.user',
-            'pengajuanMk.penilaian',
-            'hasilPleno',
-        ])->findOrFail($this->mahasiswaId);
+        $data = $service->untuk(Mahasiswa::findOrFail($this->mahasiswaId));
 
-        $asesorUrutan = $mahasiswa->penugasanAsesor->sortBy('urutan')->values();
-
-        $baris = $mahasiswa->skema?->matakuliah->map(function ($mk) use ($mahasiswa, $service, $asesorUrutan) {
-            $pengajuan = $mahasiswa->pengajuanMk->firstWhere('matakuliah_id', $mk->id);
-
-            $nilaiPerAsesor = $asesorUrutan->map(function ($penugasan) use ($pengajuan) {
-                if (! $pengajuan) {
-                    return null;
-                }
-
-                return $pengajuan->penilaian->firstWhere('asesor_id', $penugasan->asesor_id)?->nilai_akhir;
-            });
-
-            $rataRata = $pengajuan ? $service->rataRataAsesmen($pengajuan) : ['rata_rata' => null, 'jumlah_penilai' => 0];
-
-            $hasilPleno = $mahasiswa->hasilPleno->firstWhere('matakuliah_id', $mk->id);
-
-            $usulan = null;
-            if ($rataRata['rata_rata'] !== null) {
-                $usulan = $rataRata['rata_rata'] >= $mk->skor_minimum ? 'Direkognisi' : 'Tidak Direkognisi';
-            }
-
-            return (object) [
-                'matakuliah' => $mk,
-                'pengajuan' => $pengajuan,
-                'nilai_per_asesor' => $nilaiPerAsesor,
-                'rata_rata' => $rataRata['rata_rata'],
-                'jumlah_penilai' => $rataRata['jumlah_penilai'],
-                'total_asesor' => $asesorUrutan->count(),
-                'usulan' => $usulan,
-                'status' => $hasilPleno?->status,
-            ];
-        }) ?? collect();
-
-        return view('livewire.admin-prodi.rekapitulasi', [
-            'mahasiswa' => $mahasiswa,
-            'asesorUrutan' => $asesorUrutan,
-            'baris' => $baris,
-        ]);
+        return view('livewire.admin-prodi.rekapitulasi', $data);
     }
 }
