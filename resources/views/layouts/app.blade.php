@@ -62,13 +62,20 @@
                 :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
             >
                 <div class="flex h-16 items-center gap-3 border-b border-white/10 px-6">
-                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
-                        <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0118 20.417 12.083 12.083 0 0112 22a12.083 12.083 0 01-6.16-11.839L12 14z" />
-                        </svg>
+                    <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-700">
+                        @if (file_exists(public_path('images/logo-pnb.png')))
+                            <img src="{{ asset('images/logo-pnb.png') }}" alt="Logo Politeknik Negeri Bali" class="h-7 w-7 object-contain">
+                        @else
+                            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8m-4-4h8" />
+                            </svg>
+                        @endif
                     </div>
-                    <span class="text-base font-semibold text-white">SIM RPL</span>
+                    <div>
+                        <span class="block text-base font-semibold leading-tight text-white">SIRAMA</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-slate-400">Politeknik Negeri Bali</span>
+                    </div>
                 </div>
 
                 <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 scrollbar-thin">
