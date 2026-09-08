@@ -47,7 +47,7 @@
                         <tr class="hover:bg-slate-50">
                             <td class="px-6 py-3">
                                 <p class="font-medium text-slate-900">{{ $asesor->user->name }}</p>
-                                <p class="text-xs text-slate-500">{{ $asesor->user->username }} · {{ $asesor->user->email }}</p>
+                                <p class="text-xs text-slate-500">{{ $asesor->user->email }}</p>
                             </td>
                             <td class="px-6 py-3 font-mono text-slate-600">{{ $asesor->nidn ?? '—' }}</td>
                             <td class="px-6 py-3 text-slate-600">{{ $asesor->bidang_keahlian ?? '—' }}</td>
