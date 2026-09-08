@@ -242,6 +242,36 @@ class MahasiswaManager extends Component
         $this->slotAsesor = [1 => null, 2 => null, 3 => null];
     }
 
+    // --- Kirim Paksa ke Asesor ---
+
+    public function paksaKirimKeAsesor(int $mahasiswaId): void
+    {
+        $mhs = Mahasiswa::with('pengajuanMk', 'penugasanAsesor')->findOrFail($mahasiswaId);
+        $this->assertProdiAuthorized($mhs->prodi_id);
+
+        if (! in_array($mhs->status_berkas, ['draft', 'dikembalikan'])) {
+            session()->flash('error', 'Berkas ini sudah diajukan.');
+
+            return;
+        }
+
+        if ($mhs->pengajuanMk->isEmpty()) {
+            session()->flash('error', 'Mahasiswa belum mengajukan matakuliah apa pun, tidak ada yang bisa dinilai.');
+
+            return;
+        }
+
+        if ($mhs->penugasanAsesor->isEmpty()) {
+            session()->flash('error', 'Tugaskan minimal 1 asesor terlebih dahulu sebelum mengirim berkas.');
+
+            return;
+        }
+
+        $mhs->update(['status_berkas' => 'diajukan']);
+
+        session()->flash('success', 'Berkas dikirim ke asesor tanpa menunggu mahasiswa submit. Kelengkapan data (mis. Form 6) tidak divalidasi ulang — pastikan sudah sesuai secara manual.');
+    }
+
     // --- Kembalikan Berkas ---
 
     public function bukaPengembalian(int $mahasiswaId): void

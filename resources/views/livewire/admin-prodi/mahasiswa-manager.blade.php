@@ -77,6 +77,13 @@
                             </td>
                             <td class="px-6 py-3">
                                 <div class="flex justify-end gap-3">
+                                    @if (in_array($mhs->status_berkas, ['draft', 'dikembalikan']))
+                                        <button
+                                            wire:click="paksaKirimKeAsesor({{ $mhs->id }})"
+                                            wire:confirm="Kirim berkas ini ke asesor sekarang? Kelengkapan data (Form 1-6) TIDAK akan divalidasi ulang — pastikan sudah sesuai secara manual."
+                                            class="font-medium text-emerald-600 hover:text-emerald-700"
+                                        >Kirim ke Asesor</button>
+                                    @endif
                                     @if (in_array($mhs->status_berkas, ['diajukan', 'sedang_dinilai', 'selesai_dinilai']))
                                         <button wire:click="bukaPengembalian({{ $mhs->id }})" class="font-medium text-amber-600 hover:text-amber-700">Kembalikan Berkas</button>
                                     @endif
