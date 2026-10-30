@@ -46,23 +46,35 @@ class DokumenMahasiswaService
         return isset(self::GENERATOR[$nomor]) ? app(self::GENERATOR[$nomor]) : null;
     }
 
-    /** @return list<array{nomor: int, judul: string, url: ?string, catatan: ?string}> */
+    /** A form the student submitted themselves as a Google Drive link (the signed CV is Form 4). */
+    public function linkMahasiswa(int $nomor, Mahasiswa $mahasiswa): ?string
+    {
+        return match ($nomor) {
+            4 => $mahasiswa->dokumenCv?->url,
+            default => null,
+        };
+    }
+
+    /** @return list<array{nomor: int, judul: string, url: ?string, link: ?string, catatan: ?string}> */
     public function daftarFormulir(Mahasiswa $mahasiswa): array
     {
-        $mahasiswa->loadMissing(['biodata', 'skema', 'pernyataan']);
+        $mahasiswa->loadMissing(['biodata', 'skema', 'dokumenCv', 'pernyataan']);
 
         return collect(self::FORMULIR)->map(function (string $judul, int $nomor) use ($mahasiswa) {
             $tersedia = isset(self::GENERATOR[$nomor]);
+            $link = $this->linkMahasiswa($nomor, $mahasiswa);
 
             return [
                 'nomor' => $nomor,
                 'judul' => $judul,
                 'url' => $tersedia ? route('admin-prodi.mahasiswa.formulir', [$mahasiswa, $nomor]) : null,
+                'link' => $link,
                 'catatan' => match (true) {
-                    ! $tersedia => 'Belum tersedia di sistem',
+                    $nomor === 4 && ! $link => 'Mahasiswa belum mengirim link Daftar Riwayat Hidup',
+                    ! $tersedia && ! $link => 'Belum tersedia di sistem',
                     $nomor === 1 && ! $mahasiswa->biodata => 'Biodata belum diisi, isian akan kosong',
                     $nomor === 2 && ! $mahasiswa->skema => 'Belum ada skema, memakai semua mata kuliah prodi',
-                    $nomor === 3 && ! $mahasiswa->pernyataan?->disetujui => 'Pernyataan belum disetujui mahasiswa, tempat/tanggal kosong',
+                    $nomor === 3 && ! $mahasiswa->pernyataan?->disetujui => 'Mahasiswa belum mencentang persetujuan',
                     default => null,
                 },
             ];
@@ -92,10 +104,17 @@ class DokumenMahasiswaService
         $zip = new ZipArchive;
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
-        foreach (array_keys(self::GENERATOR) as $nomor) {
-            $generator = $this->generator($nomor);
-            $sementara[] = $path = $this->simpanFormulir($generator, $mahasiswa);
-            $zip->addFile($path, $generator->namaFile($mahasiswa));
+        $daftarLink = [];
+
+        foreach (self::FORMULIR as $nomor => $judul) {
+            if ($link = $this->linkMahasiswa($nomor, $mahasiswa)) {
+                $daftarLink[] = "Form {$nomor} — {$judul}:\n{$link}";
+            }
+
+            if ($generator = $this->generator($nomor)) {
+                $sementara[] = $path = $this->simpanFormulir($generator, $mahasiswa);
+                $zip->addFile($path, $generator->namaFile($mahasiswa));
+            }
         }
 
         $rekapPdf = Pdf::loadView('pdf.rekapitulasi', $this->rekap->untuk($mahasiswa))->setPaper('a4', 'landscape')->output();
@@ -104,6 +123,13 @@ class DokumenMahasiswaService
             $this->rekap->namaFile($mahasiswa, 'xlsx'),
             Excel::raw(new RekapitulasiExport($mahasiswa, $this->rekap), ExcelWriter::XLSX),
         );
+
+        if ($daftarLink) {
+            $zip->addFromString(
+                'Link-Dokumen-Mahasiswa.txt',
+                "Dokumen yang dikirim mahasiswa sebagai link (buka di browser):\r\n\r\n".str_replace("\n", "\r\n", implode("\n\n", $daftarLink))."\r\n",
+            );
+        }
 
         $zip->close();
 

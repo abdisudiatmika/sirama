@@ -64,16 +64,20 @@ class Form3Generator extends FormulirWord
         $sel = $kotak->addCell(self::LEBAR_HALAMAN);
         $sel->addText('', [], ['spaceBefore' => 200, 'spaceAfter' => 0]);
         $sel->addText('Tempat/Tanggal : '.$tempatTanggal, [], ['spaceAfter' => 160]);
-        $sel->addText('Tanda tangan Calon Peserta :', [], ['spaceAfter' => 900]);
-        $sel->addText('( '.$nama.' )', [], ['spaceAfter' => 120]);
 
+        // The on-screen consent checkbox stands in for a wet signature, so state it where the signature goes.
         if ($pernyataan?->disetujui && $pernyataan->waktu_setuju) {
             $waktu = $pernyataan->waktu_setuju->copy()->setTimezone('Asia/Makassar')->locale('id')->translatedFormat('d F Y \p\u\k\u\l H.i');
-            $section->addText(
-                "Pernyataan ini telah disetujui secara elektronik oleh calon peserta melalui SIRAMA pada {$waktu} WITA.",
-                ['italic' => true, 'size' => 9, 'color' => '555555'],
-                ['spaceBefore' => 120],
+            $sel->addText('Tanda tangan Calon Peserta :', [], ['spaceAfter' => 120]);
+            $sel->addText(
+                "DISETUJUI SECARA ELEKTRONIK melalui SIRAMA pada {$waktu} WITA",
+                ['bold' => true, 'color' => '1F3A8A'],
+                ['spaceAfter' => 240],
             );
+        } else {
+            $sel->addText('Tanda tangan Calon Peserta :', [], ['spaceAfter' => 900]);
         }
+
+        $sel->addText('( '.$nama.' )', [], ['spaceAfter' => 120]);
     }
 }
