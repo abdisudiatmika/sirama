@@ -14,9 +14,8 @@ use ZipArchive;
 
 /**
  * Single registry of the per-mahasiswa documents admins can download, so
- * the slide-over panel and the "download all" zip always list the same set.
- * A new form becomes available by adding its route in urlFormulir() and its
- * file in buatZip().
+ * the slide-over panel, single downloads and the "download all" zip always
+ * agree. A new form becomes available by adding its generator to GENERATOR.
  */
 class DokumenMahasiswaService
 {
@@ -32,38 +31,48 @@ class DokumenMahasiswaService
         9 => 'Rekapitulasi Hasil Asesmen untuk Program Studi',
     ];
 
-    public function __construct(
-        private Form1Generator $form1,
-        private RekapitulasiService $rekap,
-    ) {}
+    /** @var array<int, class-string<FormulirWord>> */
+    private const GENERATOR = [
+        1 => Form1Generator::class,
+        2 => Form2Generator::class,
+    ];
+
+    public function __construct(private RekapitulasiService $rekap) {}
+
+    public function generator(int $nomor): ?FormulirWord
+    {
+        return isset(self::GENERATOR[$nomor]) ? app(self::GENERATOR[$nomor]) : null;
+    }
 
     /** @return list<array{nomor: int, judul: string, url: ?string, catatan: ?string}> */
     public function daftarFormulir(Mahasiswa $mahasiswa): array
     {
-        $mahasiswa->loadMissing('biodata');
+        $mahasiswa->loadMissing(['biodata', 'skema']);
 
         return collect(self::FORMULIR)->map(function (string $judul, int $nomor) use ($mahasiswa) {
-            $url = $this->urlFormulir($nomor, $mahasiswa);
+            $tersedia = isset(self::GENERATOR[$nomor]);
 
             return [
                 'nomor' => $nomor,
                 'judul' => $judul,
-                'url' => $url,
+                'url' => $tersedia ? route('admin-prodi.mahasiswa.formulir', [$mahasiswa, $nomor]) : null,
                 'catatan' => match (true) {
-                    $url === null => 'Belum tersedia di sistem',
+                    ! $tersedia => 'Belum tersedia di sistem',
                     $nomor === 1 && ! $mahasiswa->biodata => 'Biodata belum diisi, isian akan kosong',
+                    $nomor === 2 && ! $mahasiswa->skema => 'Belum ada skema, memakai semua mata kuliah prodi',
                     default => null,
                 },
             ];
         })->values()->all();
     }
 
-    private function urlFormulir(int $nomor, Mahasiswa $mahasiswa): ?string
+    /** Writes a form to a temporary file and returns its path; the caller deletes it. */
+    public function simpanFormulir(FormulirWord $generator, Mahasiswa $mahasiswa): string
     {
-        return match ($nomor) {
-            1 => route('admin-prodi.mahasiswa.form1', $mahasiswa),
-            default => null,
-        };
+        $path = $this->pathSementara('docx');
+        $generator->simpan($mahasiswa, $path);
+
+        return $path;
     }
 
     public function namaFileZip(Mahasiswa $mahasiswa): string
@@ -74,28 +83,38 @@ class DokumenMahasiswaService
     /** Returns the path of a temporary zip; the caller is responsible for deleting it. */
     public function buatZip(Mahasiswa $mahasiswa): string
     {
-        $dir = storage_path('app/tmp');
-        File::ensureDirectoryExists($dir);
-
-        $zipPath = $dir.'/'.Str::uuid().'.zip';
-        $form1Path = $dir.'/'.Str::uuid().'.docx';
-
-        $this->form1->simpan($mahasiswa, $form1Path);
-
-        $dataRekap = $this->rekap->untuk($mahasiswa);
-        $rekapPdf = Pdf::loadView('pdf.rekapitulasi', $dataRekap)->setPaper('a4', 'landscape')->output();
-        $rekapXlsx = Excel::raw(new RekapitulasiExport($mahasiswa, $this->rekap), ExcelWriter::XLSX);
+        $zipPath = $this->pathSementara('zip');
+        $sementara = [];
 
         $zip = new ZipArchive;
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        $zip->addFile($form1Path, $this->form1->namaFile($mahasiswa));
+
+        foreach (array_keys(self::GENERATOR) as $nomor) {
+            $generator = $this->generator($nomor);
+            $sementara[] = $path = $this->simpanFormulir($generator, $mahasiswa);
+            $zip->addFile($path, $generator->namaFile($mahasiswa));
+        }
+
+        $rekapPdf = Pdf::loadView('pdf.rekapitulasi', $this->rekap->untuk($mahasiswa))->setPaper('a4', 'landscape')->output();
         $zip->addFromString($this->rekap->namaFile($mahasiswa, 'pdf'), $rekapPdf);
-        $zip->addFromString($this->rekap->namaFile($mahasiswa, 'xlsx'), $rekapXlsx);
+        $zip->addFromString(
+            $this->rekap->namaFile($mahasiswa, 'xlsx'),
+            Excel::raw(new RekapitulasiExport($mahasiswa, $this->rekap), ExcelWriter::XLSX),
+        );
+
         $zip->close();
 
-        // ZipArchive only reads addFile() sources on close(), so this must come after it.
-        File::delete($form1Path);
+        // ZipArchive only reads addFile() sources on close(), so these must be deleted after it.
+        File::delete($sementara);
 
         return $zipPath;
+    }
+
+    private function pathSementara(string $ekstensi): string
+    {
+        $dir = storage_path('app/tmp');
+        File::ensureDirectoryExists($dir);
+
+        return $dir.'/'.Str::uuid().'.'.$ekstensi;
     }
 }

@@ -3,26 +3,21 @@
 namespace App\Services\Dokumen;
 
 use App\Models\Mahasiswa;
-use Illuminate\Support\Str;
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\SimpleType\TblWidth;
 use PhpOffice\PhpWord\Style\Table;
 
-class Form1Generator
+class Form1Generator extends FormulirWord
 {
     private const LEBAR_LABEL = 3400;
 
-    private const LEBAR_NILAI = 5900;
-
-    public function namaFile(Mahasiswa $mahasiswa): string
+    public function nomor(): int
     {
-        return 'Form1-'.Str::slug($mahasiswa->user->name).'-'.$mahasiswa->nim.'.docx';
+        return 1;
     }
 
-    public function simpan(Mahasiswa $mahasiswa, string $path): void
+    protected function isi(Section $section, Mahasiswa $mahasiswa): void
     {
         $mahasiswa->loadMissing(['user', 'biodata', 'pendidikanTerakhir']);
         $b = $mahasiswa->biodata;
@@ -57,16 +52,6 @@ class Form1Generator
             ['Tahun Lulus', $p?->tahun_lulus_pt],
         ];
 
-        // Without this, a "&" or "<" in user-entered data produces a corrupt .docx.
-        Settings::setOutputEscapingEnabled(true);
-
-        $word = new PhpWord;
-        $word->setDefaultFontName('Times New Roman');
-        $word->setDefaultFontSize(12);
-
-        $section = $word->addSection(['marginTop' => 1134, 'marginBottom' => 1134, 'marginLeft' => 1418, 'marginRight' => 1134]);
-
-        $section->addText('FORM 1', ['bold' => true], ['alignment' => Jc::END, 'spaceAfter' => 200]);
         $section->addText('FORMULIR APLIKASI REKOGNISI PEMBELAJARAN LAMPAU (RPL) TIPE A', ['bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 320]);
         $section->addText('Bagian 1 : Rincian Data Peserta / Calon peserta', ['bold' => true], ['spaceAfter' => 80]);
         $section->addText('Pada bagian ini, cantumkan data pribadi, data pendidikan formal serta data pekerjaan saudara pada saat ini.', [], ['alignment' => Jc::BOTH, 'spaceAfter' => 240]);
@@ -78,14 +63,12 @@ class Form1Generator
         $judulB->addText('b. Data Pendidikan Terakhir ', ['bold' => true]);
         $judulB->addText('(Hanya diisi dengan pendidikan formal Tingkat Sekolah Menengah Atas atau sederajat dan Perguruan Tinggi (apabila ada dilampiri foto kopi ijazah dan transkrip nilai).');
         $this->tabel($section, $dataPendidikan, bergaris: false);
-
-        IOFactory::createWriter($word, 'Word2007')->save($path);
     }
 
     /** @param array<int, array{0: string, 1: mixed}> $baris */
-    private function tabel($section, array $baris, bool $bergaris): void
+    private function tabel(Section $section, array $baris, bool $bergaris): void
     {
-        $gaya = ['layout' => Table::LAYOUT_FIXED, 'width' => self::LEBAR_LABEL + self::LEBAR_NILAI, 'unit' => TblWidth::TWIP]
+        $gaya = ['layout' => Table::LAYOUT_FIXED, 'width' => self::LEBAR_HALAMAN, 'unit' => TblWidth::TWIP]
             + ($bergaris
                 ? ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80]
                 : ['borderSize' => 0, 'borderColor' => 'FFFFFF', 'cellMargin' => 40]);
@@ -96,7 +79,7 @@ class Form1Generator
         foreach ($baris as [$label, $nilai]) {
             $tabel->addRow(360);
             $tabel->addCell(self::LEBAR_LABEL)->addText($label, [], $paragraf);
-            $tabel->addCell(self::LEBAR_NILAI)->addText(': '.(filled($nilai) ? $nilai : ''), [], $paragraf);
+            $tabel->addCell(self::LEBAR_HALAMAN - self::LEBAR_LABEL)->addText(': '.(filled($nilai) ? $nilai : ''), [], $paragraf);
         }
     }
 }
