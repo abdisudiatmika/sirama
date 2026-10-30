@@ -27,9 +27,9 @@ class RekapitulasiExport implements FromArray, ShouldAutoSize, WithEvents
 
     private int $headerRow;
 
-    public function __construct(Mahasiswa $mahasiswa, RekapitulasiService $service)
+    public function __construct(Mahasiswa $mahasiswa, RekapitulasiService $service, bool $hanyaDiajukan = false)
     {
-        $this->data = $service->untuk($mahasiswa);
+        $this->data = $service->untuk($mahasiswa, $hanyaDiajukan);
         $this->kolomTerakhir = 6 + $this->data['asesorUrutan']->count();
     }
 
@@ -47,8 +47,8 @@ class RekapitulasiExport implements FromArray, ShouldAutoSize, WithEvents
         $blank = [' '];
 
         $rows[] = [config('rpl.institusi.nama')];
-        $rows[] = ['FORMULIR REKAPITULASI HASIL ASESMEN'];
-        $rows[] = [$mahasiswa->prodi->nama.' — Jalur Rekognisi Pembelajaran Lampau'];
+        $rows[] = ['FORM '.$this->data['nomorForm'].' — FORMULIR REKAPITULASI HASIL ASESMEN UNTUK PROGRAM STUDI'];
+        $rows[] = [$mahasiswa->prodi->nama.' — Jalur Rekognisi Pembelajaran Lampau'.($this->data['hanyaDiajukan'] ? ' (mata kuliah yang diajukan)' : '')];
         $rows[] = $blank;
         $rows[] = ['Nama', $mahasiswa->biodata->nama_lengkap ?? $mahasiswa->user->name];
         $rows[] = ['NIM', $mahasiswa->nim];

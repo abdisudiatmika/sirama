@@ -29,7 +29,7 @@ class DokumenMahasiswaService
         7 => 'Asesmen Transfer SKS dari Pendidikan Non-Formal',
         8 => 'Rekapitulasi Asesmen Perolehan SKS',
         9 => 'Rekapitulasi Hasil Asesmen untuk Program Studi',
-        10 => 'Rekapitulasi Hasil Asesmen untuk Program Studi (hasil asesor)',
+        10 => 'Rekapitulasi Hasil Asesmen untuk Program Studi (mata kuliah yang diajukan)',
     ];
 
     /** @var array<int, class-string<FormulirWord>> */
@@ -43,6 +43,9 @@ class DokumenMahasiswaService
         7 => Form7Generator::class,
         8 => Form8Generator::class,
     ];
+
+    /** Forms 9 and 10 are the recap (RekapitulasiService) as PDF/Excel; 10 keeps only submitted courses. */
+    private const REKAP = [9 => false, 10 => true];
 
     /** Forms students download from the wizard to complete, sign and return as a Drive link. */
     public const TEMPLATE_MAHASISWA = [4];
@@ -78,12 +81,14 @@ class DokumenMahasiswaService
             $tersedia = $this->bisaDiunduhAdmin($nomor);
             $link = $this->linkMahasiswa($nomor, $mahasiswa);
 
-            $unduhan = $tersedia
-                ? array_map(fn (array $v) => [
+            $unduhan = match (true) {
+                $tersedia => array_map(fn (array $v) => [
                     'label' => $v['label'],
                     'url' => route('admin-prodi.mahasiswa.formulir', array_filter([$mahasiswa, $nomor, 'varian' => $v['varian']])),
-                ], $this->generator($nomor)->daftarVarian($mahasiswa))
-                : [];
+                ], $this->generator($nomor)->daftarVarian($mahasiswa)),
+                isset(self::REKAP[$nomor]) => $this->unduhanRekap($mahasiswa, self::REKAP[$nomor]),
+                default => [],
+            };
 
             return [
                 'nomor' => $nomor,
@@ -92,7 +97,7 @@ class DokumenMahasiswaService
                 'link' => $link,
                 'catatan' => match (true) {
                     $nomor === 4 && ! $link => 'Mahasiswa belum mengirim link Daftar Riwayat Hidup',
-                    ! $tersedia && ! $link => 'Belum tersedia di sistem',
+                    ! $unduhan && ! $link => 'Belum tersedia di sistem',
                     $nomor === 1 && ! $mahasiswa->biodata => 'Biodata belum diisi, isian akan kosong',
                     $nomor === 2 && ! $mahasiswa->skema => 'Belum ada skema, memakai semua mata kuliah prodi',
                     $nomor === 3 && ! $mahasiswa->pernyataan?->disetujui => 'Mahasiswa belum mencentang persetujuan',
@@ -101,10 +106,23 @@ class DokumenMahasiswaService
                     in_array($nomor, [6, 7], true) && $mahasiswa->penugasanAsesor->isEmpty() => 'Belum ada asesor, kolom hasil kosong',
                     in_array($nomor, [6, 7], true) => 'Satu dokumen per asesor (hasil masing-masing)',
                     $nomor === 8 && $mahasiswa->hasilPleno->isEmpty() => 'Belum ada keputusan pleno, kolom SKS & status masih kosong',
+                    $nomor === 9 => 'Semua mata kuliah skema',
+                    $nomor === 10 => 'Hanya mata kuliah yang diajukan',
                     default => null,
                 },
             ];
         })->values()->all();
+    }
+
+    /** @return list<array{label: string, url: string}> */
+    private function unduhanRekap(Mahasiswa $mahasiswa, bool $hanyaDiajukan): array
+    {
+        $parameter = array_filter([$mahasiswa, 'diajukan' => $hanyaDiajukan ? 1 : null]);
+
+        return [
+            ['label' => 'PDF', 'url' => route('admin-prodi.rekapitulasi.pdf', $parameter)],
+            ['label' => 'Excel', 'url' => route('admin-prodi.rekapitulasi.excel', $parameter)],
+        ];
     }
 
     /** Writes a form to a temporary file and returns its path; the caller deletes it. */
@@ -149,12 +167,16 @@ class DokumenMahasiswaService
             }
         }
 
-        $rekapPdf = Pdf::loadView('pdf.rekapitulasi', $this->rekap->untuk($mahasiswa))->setPaper('a4', 'landscape')->output();
-        $zip->addFromString($this->rekap->namaFile($mahasiswa, 'pdf'), $rekapPdf);
-        $zip->addFromString(
-            $this->rekap->namaFile($mahasiswa, 'xlsx'),
-            Excel::raw(new RekapitulasiExport($mahasiswa, $this->rekap), ExcelWriter::XLSX),
-        );
+        foreach (self::REKAP as $hanyaDiajukan) {
+            $pdf = Pdf::loadView('pdf.rekapitulasi', $this->rekap->untuk($mahasiswa, $hanyaDiajukan))->setPaper('a4', 'landscape')->output();
+            $zip->addFromString($this->rekap->namaFile($mahasiswa, 'pdf', $hanyaDiajukan), $pdf);
+            $xlsx = Excel::raw(new RekapitulasiExport($mahasiswa, $this->rekap, $hanyaDiajukan), ExcelWriter::XLSX);
+            $zip->addFromString($this->rekap->namaFile($mahasiswa, 'xlsx', $hanyaDiajukan), $xlsx);
+
+            // dompdf and PhpSpreadsheet leave large object graphs behind; free them before the next pair.
+            unset($pdf, $xlsx);
+            gc_collect_cycles();
+        }
 
         if ($daftarLink) {
             $zip->addFromString(

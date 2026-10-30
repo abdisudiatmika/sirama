@@ -17,6 +17,7 @@
         .kop-text .kontak { font-size: 8.5px; margin: 0; color: #475569; }
         .kop-rule { border: none; border-top: 2.5px solid #1e293b; border-bottom: 0.75px solid #1e293b; height: 0; margin: 4px 0 10px 0; }
 
+        .form-no { text-align: right; font-size: 10px; font-weight: bold; margin: 0; }
         .judul { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 0 0 2px 0; }
         .subjudul { text-align: center; font-size: 10px; margin: 0 0 14px 0; color: #475569; }
 
@@ -63,8 +64,9 @@
     </table>
     <hr class="kop-rule">
 
-    <p class="judul">Formulir Rekapitulasi Hasil Asesmen</p>
-    <p class="subjudul">{{ $mahasiswa->prodi->nama }} — Jalur Rekognisi Pembelajaran Lampau</p>
+    <p class="form-no">FORM {{ $nomorForm }}</p>
+    <p class="judul">Formulir Rekapitulasi Hasil Asesmen untuk Program Studi</p>
+    <p class="subjudul">{{ $mahasiswa->prodi->nama }} — Jalur Rekognisi Pembelajaran Lampau{{ $hanyaDiajukan ? ' (mata kuliah yang diajukan)' : '' }}</p>
 
     <table class="info-table">
         <tr>

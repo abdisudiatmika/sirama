@@ -245,15 +245,6 @@
                 @endforeach
             </ul>
 
-            <h4 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">Rekap Hasil Asesmen</h4>
-            <div class="flex gap-2">
-                <a href="{{ route('admin-prodi.rekapitulasi.pdf', $panelMahasiswa) }}" class="inline-flex flex-1 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">PDF</a>
-                <a href="{{ route('admin-prodi.rekapitulasi.excel', $panelMahasiswa) }}" class="inline-flex flex-1 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Excel</a>
-            </div>
-            @if (in_array($panelMahasiswa->status_berkas, ['draft', 'diajukan', 'dikembalikan']))
-                <p class="mt-2 text-xs text-slate-400">Belum ada penilaian asesor, kolom nilai di rekap masih kosong.</p>
-            @endif
-
             <x-slot:footer>
                 <a href="{{ route('admin-prodi.mahasiswa.dokumen-zip', $panelMahasiswa) }}" class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -261,7 +252,7 @@
                     </svg>
                     Unduh Semua (.zip)
                 </a>
-                <p class="mt-2 text-center text-xs text-slate-400">Berisi semua formulir yang sudah tersedia + rekap PDF & Excel.</p>
+                <p class="mt-2 text-center text-xs text-slate-400">Berisi semua formulir yang tersedia, plus daftar link dokumen mahasiswa.</p>
             </x-slot:footer>
         </x-slide-over>
     @endif

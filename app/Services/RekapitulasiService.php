@@ -14,15 +14,22 @@ class RekapitulasiService
 {
     public function __construct(private PenilaianService $penilaianService) {}
 
-    public function namaFile(Mahasiswa $mahasiswa, string $ekstensi): string
+    /** Form 9 lists every course in the skema; Form 10 only the ones the student submitted. */
+    public function nomorForm(bool $hanyaDiajukan): int
     {
-        return 'Rekap-'.Str::slug($mahasiswa->user->name).'-'.$mahasiswa->nim.'.'.$ekstensi;
+        return $hanyaDiajukan ? 10 : 9;
     }
 
-    public function untuk(Mahasiswa $mahasiswa): array
+    public function namaFile(Mahasiswa $mahasiswa, string $ekstensi, bool $hanyaDiajukan = false): string
+    {
+        return 'Form'.$this->nomorForm($hanyaDiajukan).'-'.Str::slug($mahasiswa->user->name).'-'.$mahasiswa->nim.'.'.$ekstensi;
+    }
+
+    public function untuk(Mahasiswa $mahasiswa, bool $hanyaDiajukan = false): array
     {
         $mahasiswa->loadMissing([
-            'user', 'prodi', 'skema.matakuliah' => fn ($q) => $q->orderBy('semester')->orderBy('nama'),
+            // Official catalog order, as on the printed forms (imported courses have no semester; ids follow the catalog).
+            'user', 'prodi', 'skema.matakuliah' => fn ($q) => $q->orderByRaw('semester is null')->orderBy('semester')->orderBy('matakuliah.id'),
             'skema.matakuliah.cpmk',
             'biodata', 'pendidikanTerakhir',
             'penugasanAsesor.asesor.user',
@@ -66,11 +73,17 @@ class RekapitulasiService
             ];
         }) ?? collect();
 
+        if ($hanyaDiajukan) {
+            $baris = $baris->filter(fn ($r) => $r->pengajuan !== null)->values();
+        }
+
         return [
             'mahasiswa' => $mahasiswa,
             'asesorUrutan' => $asesorUrutan,
             'baris' => $baris,
             'jenjangLabel' => $this->jenjangSebelumnya($mahasiswa),
+            'nomorForm' => $this->nomorForm($hanyaDiajukan),
+            'hanyaDiajukan' => $hanyaDiajukan,
         ];
     }
 
