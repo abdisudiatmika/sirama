@@ -50,6 +50,12 @@ class DokumenMahasiswaService
         return isset(self::GENERATOR[$nomor]) ? app(self::GENERATOR[$nomor]) : null;
     }
 
+    /** Student templates are only a starting point; admins get the student's signed link instead. */
+    public function bisaDiunduhAdmin(int $nomor): bool
+    {
+        return isset(self::GENERATOR[$nomor]) && ! in_array($nomor, self::TEMPLATE_MAHASISWA, true);
+    }
+
     /** A form the student submitted themselves as a Google Drive link (the signed CV is Form 4). */
     public function linkMahasiswa(int $nomor, Mahasiswa $mahasiswa): ?string
     {
@@ -65,7 +71,7 @@ class DokumenMahasiswaService
         $mahasiswa->loadMissing(['biodata', 'skema', 'dokumenCv', 'pernyataan']);
 
         return collect(self::FORMULIR)->map(function (string $judul, int $nomor) use ($mahasiswa) {
-            $tersedia = isset(self::GENERATOR[$nomor]);
+            $tersedia = $this->bisaDiunduhAdmin($nomor);
             $link = $this->linkMahasiswa($nomor, $mahasiswa);
 
             return [
@@ -115,7 +121,8 @@ class DokumenMahasiswaService
                 $daftarLink[] = "Form {$nomor} — {$judul}:\n{$link}";
             }
 
-            if ($generator = $this->generator($nomor)) {
+            if ($this->bisaDiunduhAdmin($nomor)) {
+                $generator = $this->generator($nomor);
                 $sementara[] = $path = $this->simpanFormulir($generator, $mahasiswa);
                 $zip->addFile($path, $generator->namaFile($mahasiswa));
             }

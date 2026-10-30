@@ -14,8 +14,8 @@ class FormulirWordController extends Controller
         $prodiIds = Auth::user()->prodiDikelola()->pluck('prodi.id');
         abort_unless($prodiIds->contains($mahasiswa->prodi_id), 403);
 
+        abort_unless($dokumen->bisaDiunduhAdmin($nomor), 404);
         $generator = $dokumen->generator($nomor);
-        abort_unless($generator, 404);
 
         return response()
             ->download($dokumen->simpanFormulir($generator, $mahasiswa), $generator->namaFile($mahasiswa))
