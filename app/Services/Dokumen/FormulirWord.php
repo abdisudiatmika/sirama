@@ -13,19 +13,45 @@ use PhpOffice\PhpWord\SimpleType\Jc;
 /**
  * Shared page setup for the official RPL forms, so every generated form
  * uses the same font, margins and file naming. Subclasses only write content.
+ *
+ * A form can come in several variants (e.g. one per assessor); the variant
+ * is a small integer chosen from daftarVarian() and read by the subclass.
  */
 abstract class FormulirWord
 {
     /** Usable text width in twips for the A4 margins below. */
     protected const LEBAR_HALAMAN = 9300;
 
+    protected ?int $varian = null;
+
     abstract public function nomor(): int;
 
     abstract protected function isi(Section $section, Mahasiswa $mahasiswa): void;
 
+    /** @return list<array{varian: ?int, label: string}> */
+    public function daftarVarian(Mahasiswa $mahasiswa): array
+    {
+        return [['varian' => null, 'label' => 'Word']];
+    }
+
+    public function denganVarian(?int $varian): static
+    {
+        $salinan = clone $this;
+        $salinan->varian = $varian;
+
+        return $salinan;
+    }
+
+    protected function labelVarian(): ?string
+    {
+        return null;
+    }
+
     public function namaFile(Mahasiswa $mahasiswa): string
     {
-        return 'Form'.$this->nomor().'-'.Str::slug($mahasiswa->user->name).'-'.$mahasiswa->nim.'.docx';
+        $varian = $this->labelVarian() ? '-'.Str::slug($this->labelVarian()) : '';
+
+        return 'Form'.$this->nomor().$varian.'-'.Str::slug($mahasiswa->user->name).'-'.$mahasiswa->nim.'.docx';
     }
 
     public function simpan(Mahasiswa $mahasiswa, string $path): void

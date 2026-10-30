@@ -38,6 +38,7 @@ class DokumenMahasiswaService
         2 => Form2Generator::class,
         3 => Form3Generator::class,
         4 => Form4Generator::class,
+        5 => Form5Generator::class,
     ];
 
     /** Forms students download from the wizard to complete, sign and return as a Drive link. */
@@ -65,19 +66,26 @@ class DokumenMahasiswaService
         };
     }
 
-    /** @return list<array{nomor: int, judul: string, url: ?string, link: ?string, catatan: ?string}> */
+    /** @return list<array{nomor: int, judul: string, unduhan: list<array{label: string, url: string}>, link: ?string, catatan: ?string}> */
     public function daftarFormulir(Mahasiswa $mahasiswa): array
     {
-        $mahasiswa->loadMissing(['biodata', 'skema', 'dokumenCv', 'pernyataan']);
+        $mahasiswa->loadMissing(['biodata', 'skema', 'dokumenCv', 'pernyataan', 'penugasanAsesor']);
 
         return collect(self::FORMULIR)->map(function (string $judul, int $nomor) use ($mahasiswa) {
             $tersedia = $this->bisaDiunduhAdmin($nomor);
             $link = $this->linkMahasiswa($nomor, $mahasiswa);
 
+            $unduhan = $tersedia
+                ? array_map(fn (array $v) => [
+                    'label' => $v['label'],
+                    'url' => route('admin-prodi.mahasiswa.formulir', array_filter([$mahasiswa, $nomor, 'varian' => $v['varian']])),
+                ], $this->generator($nomor)->daftarVarian($mahasiswa))
+                : [];
+
             return [
                 'nomor' => $nomor,
                 'judul' => $judul,
-                'url' => $tersedia ? route('admin-prodi.mahasiswa.formulir', [$mahasiswa, $nomor]) : null,
+                'unduhan' => $unduhan,
                 'link' => $link,
                 'catatan' => match (true) {
                     $nomor === 4 && ! $link => 'Mahasiswa belum mengirim link Daftar Riwayat Hidup',
@@ -85,6 +93,8 @@ class DokumenMahasiswaService
                     $nomor === 1 && ! $mahasiswa->biodata => 'Biodata belum diisi, isian akan kosong',
                     $nomor === 2 && ! $mahasiswa->skema => 'Belum ada skema, memakai semua mata kuliah prodi',
                     $nomor === 3 && ! $mahasiswa->pernyataan?->disetujui => 'Mahasiswa belum mencentang persetujuan',
+                    $nomor === 5 && $mahasiswa->penugasanAsesor->isEmpty() => 'Belum ada asesor, kolom VATM kosong',
+                    $nomor === 5 => 'Satu dokumen per asesor (VATM masing-masing)',
                     default => null,
                 },
             ];
@@ -121,10 +131,15 @@ class DokumenMahasiswaService
                 $daftarLink[] = "Form {$nomor} — {$judul}:\n{$link}";
             }
 
-            if ($this->bisaDiunduhAdmin($nomor)) {
-                $generator = $this->generator($nomor);
-                $sementara[] = $path = $this->simpanFormulir($generator, $mahasiswa);
-                $zip->addFile($path, $generator->namaFile($mahasiswa));
+            if (! $this->bisaDiunduhAdmin($nomor)) {
+                continue;
+            }
+
+            $generator = $this->generator($nomor);
+            foreach ($generator->daftarVarian($mahasiswa) as $v) {
+                $varian = $generator->denganVarian($v['varian']);
+                $sementara[] = $path = $this->simpanFormulir($varian, $mahasiswa);
+                $zip->addFile($path, $varian->namaFile($mahasiswa));
             }
         }
 
