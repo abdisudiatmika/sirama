@@ -29,12 +29,14 @@ class DokumenMahasiswaService
         7 => 'Asesmen Transfer SKS dari Pendidikan Non-Formal',
         8 => 'Rekapitulasi Asesmen Perolehan SKS',
         9 => 'Rekapitulasi Hasil Asesmen untuk Program Studi',
+        10 => 'Rekapitulasi Hasil Asesmen untuk Program Studi (hasil asesor)',
     ];
 
     /** @var array<int, class-string<FormulirWord>> */
     private const GENERATOR = [
         1 => Form1Generator::class,
         2 => Form2Generator::class,
+        3 => Form3Generator::class,
     ];
 
     public function __construct(private RekapitulasiService $rekap) {}
@@ -47,7 +49,7 @@ class DokumenMahasiswaService
     /** @return list<array{nomor: int, judul: string, url: ?string, catatan: ?string}> */
     public function daftarFormulir(Mahasiswa $mahasiswa): array
     {
-        $mahasiswa->loadMissing(['biodata', 'skema']);
+        $mahasiswa->loadMissing(['biodata', 'skema', 'pernyataan']);
 
         return collect(self::FORMULIR)->map(function (string $judul, int $nomor) use ($mahasiswa) {
             $tersedia = isset(self::GENERATOR[$nomor]);
@@ -60,6 +62,7 @@ class DokumenMahasiswaService
                     ! $tersedia => 'Belum tersedia di sistem',
                     $nomor === 1 && ! $mahasiswa->biodata => 'Biodata belum diisi, isian akan kosong',
                     $nomor === 2 && ! $mahasiswa->skema => 'Belum ada skema, memakai semua mata kuliah prodi',
+                    $nomor === 3 && ! $mahasiswa->pernyataan?->disetujui => 'Pernyataan belum disetujui mahasiswa, tempat/tanggal kosong',
                     default => null,
                 },
             ];
