@@ -86,6 +86,7 @@
                                     @if (in_array($mhs->status_berkas, ['diajukan', 'sedang_dinilai', 'selesai_dinilai']))
                                         <button wire:click="bukaPengembalian({{ $mhs->id }})" class="font-medium text-amber-600 hover:text-amber-700">Kembalikan Berkas</button>
                                     @endif
+                                    <a href="{{ route('admin-prodi.mahasiswa.form1', $mhs) }}" class="font-medium text-slate-600 hover:text-slate-800">Form 1</a>
                                     <button wire:click="resetPassword({{ $mhs->id }})" wire:confirm="Buat password baru untuk akun ini?" class="font-medium text-slate-600 hover:text-slate-800">Reset Password</button>
                                     <button wire:click="edit({{ $mhs->id }})" class="font-medium text-indigo-600 hover:text-indigo-500">Ubah</button>
                                 </div>
