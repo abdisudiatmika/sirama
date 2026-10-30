@@ -41,6 +41,7 @@ class DokumenMahasiswaService
         5 => Form5Generator::class,
         6 => Form6Generator::class,
         7 => Form7Generator::class,
+        8 => Form8Generator::class,
     ];
 
     /** Forms students download from the wizard to complete, sign and return as a Drive link. */
@@ -71,7 +72,7 @@ class DokumenMahasiswaService
     /** @return list<array{nomor: int, judul: string, unduhan: list<array{label: string, url: string}>, link: ?string, catatan: ?string}> */
     public function daftarFormulir(Mahasiswa $mahasiswa): array
     {
-        $mahasiswa->loadMissing(['biodata', 'skema', 'dokumenCv', 'pernyataan', 'penugasanAsesor']);
+        $mahasiswa->loadMissing(['biodata', 'skema', 'dokumenCv', 'pernyataan', 'penugasanAsesor', 'hasilPleno']);
 
         return collect(self::FORMULIR)->map(function (string $judul, int $nomor) use ($mahasiswa) {
             $tersedia = $this->bisaDiunduhAdmin($nomor);
@@ -99,6 +100,7 @@ class DokumenMahasiswaService
                     $nomor === 5 => 'Satu dokumen per asesor (VATM masing-masing)',
                     in_array($nomor, [6, 7], true) && $mahasiswa->penugasanAsesor->isEmpty() => 'Belum ada asesor, kolom hasil kosong',
                     in_array($nomor, [6, 7], true) => 'Satu dokumen per asesor (hasil masing-masing)',
+                    $nomor === 8 && $mahasiswa->hasilPleno->isEmpty() => 'Belum ada keputusan pleno, kolom SKS & status masih kosong',
                     default => null,
                 },
             ];
