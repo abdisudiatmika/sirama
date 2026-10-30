@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Mahasiswa\TemplateFormulirController;
 use App\Livewire\Mahasiswa\Dashboard;
 use App\Livewire\Mahasiswa\Wizard;
 use Illuminate\Support\Facades\Route;
@@ -10,4 +11,5 @@ Route::middleware(['auth', 'role:mahasiswa'])
     ->group(function () {
         Route::get('/', Dashboard::class)->name('dashboard');
         Route::get('/pengajuan', Wizard::class)->name('wizard');
+        Route::get('/pengajuan/template/{nomor}', TemplateFormulirController::class)->whereNumber('nomor')->name('template-formulir');
     });

@@ -37,7 +37,11 @@ class DokumenMahasiswaService
         1 => Form1Generator::class,
         2 => Form2Generator::class,
         3 => Form3Generator::class,
+        4 => Form4Generator::class,
     ];
+
+    /** Forms students download from the wizard to complete, sign and return as a Drive link. */
+    public const TEMPLATE_MAHASISWA = [4];
 
     public function __construct(private RekapitulasiService $rekap) {}
 

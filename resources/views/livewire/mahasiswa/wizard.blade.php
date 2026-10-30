@@ -301,13 +301,18 @@
 
                 <form wire:submit="simpanForm4" class="mt-6 space-y-6">
                     <div>
-                        <a href="#" onclick="return false;" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                        <a href="{{ route('mahasiswa.template-formulir', 4) }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                            Unduh Template Daftar Pelatihan & Pengalaman Kerja
+                            Unduh Template Daftar Riwayat Hidup (Word)
                         </a>
+                        <ol class="mt-3 list-decimal space-y-0.5 pl-5 text-xs text-slate-500">
+                            <li>Unduh template di atas. Identitas dan riwayat pendidikan sudah terisi dari data Anda (simpan Form 1 dulu agar terisi).</li>
+                            <li>Lengkapi pekerjaan, pelatihan, seminar, penghargaan, organisasi, dan riwayat pekerjaan, lalu tanda tangani.</li>
+                            <li>Unggah dokumen yang sudah ditandatangani ke Google Drive, lalu tempel link-nya di bawah.</li>
+                        </ol>
 
                         <div class="mt-4">
-                            <label class="mb-1.5 block text-sm font-medium text-slate-700">Link Dokumen yang Sudah Diisi & Ditandatangani</label>
+                            <label class="mb-1.5 block text-sm font-medium text-slate-700">Link Daftar Riwayat Hidup yang Sudah Diisi & Ditandatangani</label>
                             <input wire:model="cv_url" type="text" @disabled($readOnly) class="block w-full rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-slate-50" placeholder="https://drive.google.com/...">
                             @error('cv_url') <p class="mt-1.5 text-sm text-rose-600">{{ $message }}</p> @enderror
                             <p class="mt-1.5 text-xs text-slate-500">Atur izin akses link minimal <em>"siapa saja yang memiliki link dapat melihat"</em> dan izinkan unduhan.</p>
