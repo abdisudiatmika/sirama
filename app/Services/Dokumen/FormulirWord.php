@@ -22,7 +22,15 @@ abstract class FormulirWord
     /** Usable text width in twips for the A4 margins below. */
     protected const LEBAR_HALAMAN = 9300;
 
+    /** Usable text width in twips on a landscape A4 page with 2 cm margins. */
+    protected const LEBAR_HALAMAN_LANSKAP = 14500;
+
     protected ?int $varian = null;
+
+    protected function lanskap(): bool
+    {
+        return false;
+    }
 
     abstract public function nomor(): int;
 
@@ -47,6 +55,15 @@ abstract class FormulirWord
         return null;
     }
 
+    protected function namaJenjang(?string $jenjang): string
+    {
+        return match ($jenjang) {
+            'D3' => 'Diploma Tiga',
+            'D4' => 'Sarjana Terapan',
+            default => (string) $jenjang,
+        };
+    }
+
     public function namaFile(Mahasiswa $mahasiswa): string
     {
         $varian = $this->labelVarian() ? '-'.Str::slug($this->labelVarian()) : '';
@@ -63,7 +80,9 @@ abstract class FormulirWord
         $word->setDefaultFontName('Times New Roman');
         $word->setDefaultFontSize(12);
 
-        $section = $word->addSection(['marginTop' => 1134, 'marginBottom' => 1134, 'marginLeft' => 1418, 'marginRight' => 1134]);
+        $section = $word->addSection($this->lanskap()
+            ? ['orientation' => 'landscape', 'marginTop' => 1134, 'marginBottom' => 1134, 'marginLeft' => 1134, 'marginRight' => 1134]
+            : ['marginTop' => 1134, 'marginBottom' => 1134, 'marginLeft' => 1418, 'marginRight' => 1134]);
         $section->addText('FORM '.$this->nomor(), ['bold' => true], ['alignment' => Jc::END, 'spaceAfter' => 200]);
 
         $this->isi($section, $mahasiswa);

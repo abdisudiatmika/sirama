@@ -67,7 +67,7 @@ class ImportSiramaLegacy extends Command
     /** @var array<int,string> used usernames this run, to keep generated ones unique */
     private array $usedUsernames = [];
 
-    public function handle(PenilaianService $penilaianService): int
+    public static function daftarkanKoneksiLegacy(): void
     {
         Config::set('database.connections.sirama_legacy', [
             'driver' => 'mysql',
@@ -79,6 +79,11 @@ class ImportSiramaLegacy extends Command
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
         ]);
+    }
+
+    public function handle(PenilaianService $penilaianService): int
+    {
+        self::daftarkanKoneksiLegacy();
 
         $this->info('Memulai impor data dari sirama_legacy...');
 

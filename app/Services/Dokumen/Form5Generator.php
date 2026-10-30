@@ -41,33 +41,17 @@ class Form5Generator extends FormulirWord
 
     private const ROMAWI = [1 => 'I', 2 => 'II', 3 => 'III'];
 
+    use VarianPerAsesor;
+
     public function nomor(): int
     {
         return 5;
     }
 
-    public function daftarVarian(Mahasiswa $mahasiswa): array
-    {
-        $penugasan = $mahasiswa->penugasanAsesor()->orderBy('urutan')->get();
-
-        if ($penugasan->isEmpty()) {
-            return parent::daftarVarian($mahasiswa);
-        }
-
-        return $penugasan->map(fn (PenugasanAsesor $p) => ['varian' => $p->urutan, 'label' => 'Asesor '.$p->urutan])->all();
-    }
-
-    protected function labelVarian(): ?string
-    {
-        return $this->varian ? 'Asesor '.$this->varian : null;
-    }
-
     protected function isi(Section $section, Mahasiswa $mahasiswa): void
     {
         $mahasiswa->loadMissing(['user', 'prodi', 'biodata']);
-        $penugasan = $this->varian
-            ? $mahasiswa->penugasanAsesor()->with('asesor.user')->where('urutan', $this->varian)->first()
-            : null;
+        $penugasan = $this->penugasanVarian($mahasiswa);
 
         $section->addText('FORMULIR ASESMEN MANDIRI', ['bold' => true, 'size' => 13], ['alignment' => Jc::CENTER, 'spaceAfter' => 240]);
 
@@ -249,15 +233,6 @@ class Form5Generator extends FormulirWord
         $asesor->addText('Nama : '.($penugasan?->asesor?->user?->name ?? ''), [], $p);
         $asesor->addText('NIP/NIDN : '.($penugasan?->asesor?->nidn ?? ''), [], $p);
         $asesor->addText('Tanggal/Tanda tangan :', [], ['spaceAfter' => 700]);
-    }
-
-    private function namaJenjang(?string $jenjang): string
-    {
-        return match ($jenjang) {
-            'D3' => 'Diploma Tiga',
-            'D4' => 'Sarjana Terapan',
-            default => (string) $jenjang,
-        };
     }
 
     private function tabelPolos(Section $section): TabelWord

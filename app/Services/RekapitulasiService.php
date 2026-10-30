@@ -66,18 +66,24 @@ class RekapitulasiService
             ];
         }) ?? collect();
 
-        $jenjangLabel = '—';
-        $pendidikan = $mahasiswa->pendidikanTerakhir;
-        if ($pendidikan) {
-            $institusi = filled($pendidikan->nama_pt) ? $pendidikan->nama_pt : $pendidikan->nama_sekolah;
-            $jenjangLabel = trim(($pendidikan->program ? $pendidikan->program.' ' : '').$institusi);
-        }
-
         return [
             'mahasiswa' => $mahasiswa,
             'asesorUrutan' => $asesorUrutan,
             'baris' => $baris,
-            'jenjangLabel' => $jenjangLabel,
+            'jenjangLabel' => $this->jenjangSebelumnya($mahasiswa),
         ];
+    }
+
+    public function jenjangSebelumnya(Mahasiswa $mahasiswa): string
+    {
+        $pendidikan = $mahasiswa->pendidikanTerakhir;
+
+        if (! $pendidikan) {
+            return '—';
+        }
+
+        $institusi = filled($pendidikan->nama_pt) ? $pendidikan->nama_pt : $pendidikan->nama_sekolah;
+
+        return trim(($pendidikan->program ? $pendidikan->program.' ' : '').$institusi);
     }
 }
