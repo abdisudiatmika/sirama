@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminProdi\DokumenZipController;
 use App\Http\Controllers\AdminProdi\Form1WordController;
 use App\Http\Controllers\AdminProdi\RekapitulasiExcelController;
 use App\Http\Controllers\AdminProdi\RekapitulasiPdfController;
@@ -22,6 +23,7 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/asesor', AsesorDirectory::class)->name('asesor');
         Route::get('/mahasiswa', MahasiswaManager::class)->name('mahasiswa');
         Route::get('/mahasiswa/{mahasiswa}/form-1', Form1WordController::class)->name('mahasiswa.form1');
+        Route::get('/mahasiswa/{mahasiswa}/unduh-semua', DokumenZipController::class)->name('mahasiswa.dokumen-zip');
         Route::get('/monitoring', MonitoringPenilaian::class)->name('monitoring');
         Route::get('/monitoring/{mahasiswa}', Rekapitulasi::class)->name('rekapitulasi');
         Route::get('/monitoring/{mahasiswa}/pdf', RekapitulasiPdfController::class)->name('rekapitulasi.pdf');

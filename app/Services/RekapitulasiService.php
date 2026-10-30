@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Mahasiswa;
+use Illuminate\Support\Str;
 
 /**
  * Builds the §6.5 recap rows for one mahasiswa — shared by the Livewire
@@ -12,6 +13,11 @@ use App\Models\Mahasiswa;
 class RekapitulasiService
 {
     public function __construct(private PenilaianService $penilaianService) {}
+
+    public function namaFile(Mahasiswa $mahasiswa, string $ekstensi): string
+    {
+        return 'Rekap-'.Str::slug($mahasiswa->user->name).'-'.$mahasiswa->nim.'.'.$ekstensi;
+    }
 
     public function untuk(Mahasiswa $mahasiswa): array
     {

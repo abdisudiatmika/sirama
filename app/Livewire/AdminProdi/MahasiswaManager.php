@@ -9,6 +9,7 @@ use App\Models\PengembalianBerkas;
 use App\Models\PenugasanAsesor;
 use App\Models\Skema;
 use App\Models\User;
+use App\Services\Dokumen\DokumenMahasiswaService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -61,6 +62,9 @@ class MahasiswaManager extends Component
     public ?int $pengembalianMahasiswaId = null;
 
     public string $alasanPengembalian = '';
+
+    // Panel dokumen
+    public ?int $panelMahasiswaId = null;
 
     public function mount(): void
     {
@@ -322,8 +326,29 @@ class MahasiswaManager extends Component
         $this->resetErrorBag();
     }
 
+    // --- Panel Dokumen ---
+
+    public function bukaPanel(int $mahasiswaId): void
+    {
+        $mhs = Mahasiswa::findOrFail($mahasiswaId);
+        $this->assertProdiAuthorized($mhs->prodi_id);
+
+        $this->panelMahasiswaId = $mahasiswaId;
+    }
+
+    public function closePanel(): void
+    {
+        $this->panelMahasiswaId = null;
+    }
+
     public function render()
     {
+        $dokumen = app(DokumenMahasiswaService::class);
+
+        $panelMahasiswa = $this->panelMahasiswaId
+            ? Mahasiswa::with(['user', 'skema', 'biodata'])->find($this->panelMahasiswaId)
+            : null;
+
         $mahasiswaList = Mahasiswa::where('prodi_id', $this->prodiId)
             ->with(['user', 'skema', 'penugasanAsesor.asesor.user'])
             ->when($this->search, function ($q) {
@@ -350,6 +375,8 @@ class MahasiswaManager extends Component
             'skemaOptions' => $skemaOptions,
             'asesorOptions' => $asesorOptions,
             'prodiOptions' => $this->prodiOptions(),
+            'panelMahasiswa' => $panelMahasiswa,
+            'panelFormulir' => $panelMahasiswa ? $dokumen->daftarFormulir($panelMahasiswa) : [],
         ]);
     }
 }

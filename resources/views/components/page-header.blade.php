@@ -8,7 +8,7 @@
         @endif
     </div>
     @if (isset($actions))
-        <div class="flex flex-shrink-0 items-center gap-2">
+        <div class="flex flex-shrink-0 flex-wrap items-center gap-2">
             {{ $actions }}
         </div>
     @endif

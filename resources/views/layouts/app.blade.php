@@ -115,7 +115,7 @@
             </aside>
 
             <!-- Main -->
-            <div class="flex flex-1 flex-col lg:pl-0">
+            <div class="flex min-w-0 flex-1 flex-col lg:pl-0">
                 <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6">
                     <div class="flex items-center gap-4">
                         <button @click="sidebarOpen = true" class="text-slate-500 hover:text-slate-700 lg:hidden">
