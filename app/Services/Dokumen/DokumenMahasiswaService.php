@@ -40,6 +40,7 @@ class DokumenMahasiswaService
         4 => Form4Generator::class,
         5 => Form5Generator::class,
         6 => Form6Generator::class,
+        7 => Form7Generator::class,
     ];
 
     /** Forms students download from the wizard to complete, sign and return as a Drive link. */
@@ -96,8 +97,8 @@ class DokumenMahasiswaService
                     $nomor === 3 && ! $mahasiswa->pernyataan?->disetujui => 'Mahasiswa belum mencentang persetujuan',
                     $nomor === 5 && $mahasiswa->penugasanAsesor->isEmpty() => 'Belum ada asesor, kolom VATM kosong',
                     $nomor === 5 => 'Satu dokumen per asesor (VATM masing-masing)',
-                    $nomor === 6 && $mahasiswa->penugasanAsesor->isEmpty() => 'Belum ada asesor, kolom hasil kosong',
-                    $nomor === 6 => 'Satu dokumen per asesor (hasil masing-masing)',
+                    in_array($nomor, [6, 7], true) && $mahasiswa->penugasanAsesor->isEmpty() => 'Belum ada asesor, kolom hasil kosong',
+                    in_array($nomor, [6, 7], true) => 'Satu dokumen per asesor (hasil masing-masing)',
                     default => null,
                 },
             ];
