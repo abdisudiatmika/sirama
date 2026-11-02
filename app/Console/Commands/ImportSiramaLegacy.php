@@ -81,6 +81,18 @@ class ImportSiramaLegacy extends Command
         ]);
     }
 
+    /**
+     * The student this import created for a legacy mahasiswa: NIM "LEGACY-<legacy id>",
+     * or — for students whose email already existed — the account with that email.
+     */
+    public static function cariMahasiswa(int $legacyMahasiswaId, ?string $email): ?Mahasiswa
+    {
+        $nim = 'LEGACY-'.str_pad((string) $legacyMahasiswaId, 5, '0', STR_PAD_LEFT);
+
+        return Mahasiswa::where('nim', $nim)->first()
+            ?? ($email ? Mahasiswa::whereHas('user', fn ($q) => $q->where('email', $email))->first() : null);
+    }
+
     public function handle(PenilaianService $penilaianService): int
     {
         self::daftarkanKoneksiLegacy();

@@ -115,21 +115,13 @@ class ImportMkAsalLegacy extends Command
         return self::SUCCESS;
     }
 
-    /**
-     * sirama:import gave migrated students NIM "LEGACY-<legacy id>"; students
-     * whose email already existed kept their account, so fall back to email.
-     *
-     * @return array<int, Mahasiswa>
-     */
+    /** @return array<int, Mahasiswa> */
     private function petaMahasiswa($baris): array
     {
         $peta = [];
 
         foreach ($baris->unique('legacy_mahasiswa_id') as $b) {
-            $nim = 'LEGACY-'.str_pad((string) $b->legacy_mahasiswa_id, 5, '0', STR_PAD_LEFT);
-
-            $mahasiswa = Mahasiswa::where('nim', $nim)->first()
-                ?? Mahasiswa::whereHas('user', fn ($q) => $q->where('email', $b->email))->first();
+            $mahasiswa = ImportSiramaLegacy::cariMahasiswa($b->legacy_mahasiswa_id, $b->email);
 
             if ($mahasiswa) {
                 $peta[$b->legacy_mahasiswa_id] = $mahasiswa->load('pengajuanMk.matakuliah');

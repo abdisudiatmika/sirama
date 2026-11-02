@@ -46,6 +46,12 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    /*
+     * Folder holding the legacy system's "uploads/..." files (attachment.file_path
+     * is relative to it). Keep it outside public/ — these are personal documents.
+     */
+    'lampiran_lama_path' => env('LAMPIRAN_LAMA_PATH', storage_path('app/private/lampiran-lama')),
+
     'institusi' => [
         'nama' => 'Politeknik Negeri Bali',
         'kementerian' => 'Kementerian Pendidikan Tinggi, Sains, dan Teknologi',
