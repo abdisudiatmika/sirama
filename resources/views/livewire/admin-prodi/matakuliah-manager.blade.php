@@ -64,11 +64,7 @@
                 </tbody>
             </table>
         </div>
-        @if ($matakuliahList->hasPages())
-            <div class="border-t border-slate-200 px-6 py-3">
-                {{ $matakuliahList->links() }}
-            </div>
-        @endif
+        <x-paginasi :paginator="$matakuliahList" />
     </div>
 
     <x-modal :show="$showModal" :title="$editingId ? 'Ubah Matakuliah' : 'Tambah Matakuliah'" max-width="xl">

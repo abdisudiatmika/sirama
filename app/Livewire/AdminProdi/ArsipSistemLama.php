@@ -3,6 +3,7 @@
 namespace App\Livewire\AdminProdi;
 
 use App\Livewire\Concerns\InteractsWithProdiContext;
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\LampiranLama;
 use App\Models\Mahasiswa;
 use App\Services\LampiranLamaService;
@@ -15,7 +16,7 @@ use Livewire\WithPagination;
 #[Title('Arsip Sistem Lama')]
 class ArsipSistemLama extends Component
 {
-    use InteractsWithProdiContext, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
 
     public string $search = '';
 
@@ -40,7 +41,7 @@ class ArsipSistemLama extends Component
                 ->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$this->search}%"))
                 ->orWhere('nim', 'like', "%{$this->search}%")))
             ->orderBy('nim')
-            ->paginate(15);
+            ->paginate($this->barisPerHalaman());
 
         $ringkasan = LampiranLama::whereHas('mahasiswa', fn ($q) => $q->where('prodi_id', $this->prodiId))
             ->selectRaw('count(distinct mahasiswa_id) as mahasiswa, count(*) as file, coalesce(sum(ukuran), 0) as ukuran')

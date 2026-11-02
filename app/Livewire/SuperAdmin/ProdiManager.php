@@ -2,6 +2,7 @@
 
 namespace App\Livewire\SuperAdmin;
 
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Prodi;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -12,7 +13,7 @@ use Livewire\WithPagination;
 #[Title('Program Studi')]
 class ProdiManager extends Component
 {
-    use WithPagination;
+    use WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -110,7 +111,7 @@ class ProdiManager extends Component
         $prodiList = Prodi::withCount('mahasiswa')
             ->when($this->search, fn ($q) => $q->where('nama', 'like', "%{$this->search}%")->orWhere('kode', 'like', "%{$this->search}%"))
             ->orderBy('nama')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         return view('livewire.super-admin.prodi-manager', [
             'prodiList' => $prodiList,

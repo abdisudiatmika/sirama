@@ -3,6 +3,7 @@
 namespace App\Livewire\AdminProdi;
 
 use App\Livewire\Concerns\InteractsWithProdiContext;
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Cpmk;
 use App\Models\Matakuliah;
 use Livewire\Attributes\Layout;
@@ -14,7 +15,7 @@ use Livewire\WithPagination;
 #[Title('Matakuliah & CPMK')]
 class MatakuliahManager extends Component
 {
-    use InteractsWithProdiContext, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -221,7 +222,7 @@ class MatakuliahManager extends Component
             ->when($this->search, fn ($q) => $q->where('nama', 'like', "%{$this->search}%")->orWhere('kode', 'like', "%{$this->search}%"))
             ->orderBy('semester')
             ->orderBy('nama')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         $cpmkList = $this->cpmkMatakuliahId
             ? Cpmk::where('matakuliah_id', $this->cpmkMatakuliahId)->orderBy('urutan')->get()

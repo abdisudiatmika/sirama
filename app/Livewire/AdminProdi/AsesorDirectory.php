@@ -3,6 +3,7 @@
 namespace App\Livewire\AdminProdi;
 
 use App\Livewire\Concerns\InteractsWithProdiContext;
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Asesor;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,7 @@ use Livewire\WithPagination;
 #[Title('Direktori Asesor')]
 class AsesorDirectory extends Component
 {
-    use InteractsWithProdiContext, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -118,7 +119,7 @@ class AsesorDirectory extends Component
                     ->orWhere('nidn', 'like', "%{$this->search}%");
             })
             ->orderBy('users.name')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         return view('livewire.admin-prodi.asesor-directory', [
             'asesorList' => $asesorList,

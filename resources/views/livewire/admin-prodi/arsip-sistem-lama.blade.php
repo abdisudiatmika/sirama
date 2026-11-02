@@ -83,10 +83,6 @@
                 </tbody>
             </table>
         </div>
-        @if ($daftar->hasPages())
-            <div class="border-t border-slate-200 px-6 py-3">
-                {{ $daftar->links() }}
-            </div>
-        @endif
+        <x-paginasi :paginator="$daftar" />
     </div>
 </div>

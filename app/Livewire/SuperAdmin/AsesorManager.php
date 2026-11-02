@@ -2,6 +2,7 @@
 
 namespace App\Livewire\SuperAdmin;
 
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Asesor;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,7 @@ use Livewire\WithPagination;
 #[Title('Direktori Asesor')]
 class AsesorManager extends Component
 {
-    use WithPagination;
+    use WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -173,7 +174,7 @@ class AsesorManager extends Component
                     ->orWhere('nidn', 'like', "%{$this->search}%");
             })
             ->orderBy('users.name')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         return view('livewire.super-admin.asesor-manager', [
             'asesorList' => $asesorList,

@@ -3,6 +3,7 @@
 namespace App\Livewire\AdminProdi;
 
 use App\Livewire\Concerns\InteractsWithProdiContext;
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Matakuliah;
 use App\Models\Skema;
 use Livewire\Attributes\Layout;
@@ -14,7 +15,7 @@ use Livewire\WithPagination;
 #[Title('Skema')]
 class SkemaManager extends Component
 {
-    use InteractsWithProdiContext, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -121,7 +122,7 @@ class SkemaManager extends Component
             ->withCount(['matakuliah', 'mahasiswa'])
             ->orderByDesc('tahun_akademik')
             ->orderBy('nama')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         $matakuliahOptions = Matakuliah::where('prodi_id', $this->prodiId)
             ->where('is_aktif', true)

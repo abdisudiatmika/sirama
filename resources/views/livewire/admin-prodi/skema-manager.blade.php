@@ -42,11 +42,7 @@
         @endforelse
     </div>
 
-    @if ($skemaList->hasPages())
-        <div class="mt-4">
-            {{ $skemaList->links() }}
-        </div>
-    @endif
+    <x-paginasi :paginator="$skemaList" class="mt-4 rounded-2xl border border-slate-200 bg-white" />
 
     <x-modal :show="$showModal" :title="$editingId ? 'Ubah Skema' : 'Tambah Skema'" max-width="2xl">
         <form wire:submit="simpan" class="space-y-4">

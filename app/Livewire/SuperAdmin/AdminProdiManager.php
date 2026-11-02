@@ -2,6 +2,7 @@
 
 namespace App\Livewire\SuperAdmin;
 
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,7 @@ use Livewire\WithPagination;
 #[Title('Admin Prodi')]
 class AdminProdiManager extends Component
 {
-    use WithPagination;
+    use WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -149,7 +150,7 @@ class AdminProdiManager extends Component
             ->with('prodiDikelola')
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")->orWhere('username', 'like', "%{$this->search}%"))
             ->orderBy('name')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         return view('livewire.super-admin.admin-prodi-manager', [
             'admins' => $admins,

@@ -3,6 +3,7 @@
 namespace App\Livewire\AdminProdi;
 
 use App\Livewire\Concerns\InteractsWithProdiContext;
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Asesor;
 use App\Models\Mahasiswa;
 use App\Models\PengembalianBerkas;
@@ -22,7 +23,7 @@ use Livewire\WithPagination;
 #[Title('Mahasiswa')]
 class MahasiswaManager extends Component
 {
-    use InteractsWithProdiContext, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
 
     public bool $showModal = false;
 
@@ -357,7 +358,7 @@ class MahasiswaManager extends Component
             })
             ->orderByDesc('tahun_masuk')
             ->orderBy('nim')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         $skemaOptions = Skema::where('prodi_id', $this->prodiId)->where('is_aktif', true)->orderBy('nama')->get();
 

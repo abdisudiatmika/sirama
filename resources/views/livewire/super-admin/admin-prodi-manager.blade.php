@@ -80,11 +80,7 @@
                 </tbody>
             </table>
         </div>
-        @if ($admins->hasPages())
-            <div class="border-t border-slate-200 px-6 py-3">
-                {{ $admins->links() }}
-            </div>
-        @endif
+        <x-paginasi :paginator="$admins" />
     </div>
 
     <x-modal :show="$showModal" :title="$editingId ? 'Ubah Admin Prodi' : 'Tambah Admin Prodi'" max-width="xl">

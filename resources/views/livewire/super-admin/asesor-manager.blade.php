@@ -78,11 +78,7 @@
                 </tbody>
             </table>
         </div>
-        @if ($asesorList->hasPages())
-            <div class="border-t border-slate-200 px-6 py-3">
-                {{ $asesorList->links() }}
-            </div>
-        @endif
+        <x-paginasi :paginator="$asesorList" />
     </div>
 
     <x-modal :show="$showModal" :title="$editingId ? 'Ubah Data Asesor' : 'Tambah Asesor'" max-width="xl">

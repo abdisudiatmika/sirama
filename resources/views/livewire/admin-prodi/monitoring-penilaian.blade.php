@@ -93,10 +93,6 @@
                 </tbody>
             </table>
         </div>
-        @if ($mahasiswaList->hasPages())
-            <div class="border-t border-slate-200 px-6 py-3">
-                {{ $mahasiswaList->links() }}
-            </div>
-        @endif
+        <x-paginasi :paginator="$mahasiswaList" />
     </div>
 </div>

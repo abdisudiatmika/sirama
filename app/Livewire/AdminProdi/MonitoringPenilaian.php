@@ -3,6 +3,7 @@
 namespace App\Livewire\AdminProdi;
 
 use App\Livewire\Concerns\InteractsWithProdiContext;
+use App\Livewire\Concerns\WithBarisPerHalaman;
 use App\Models\Asesor;
 use App\Models\Mahasiswa;
 use App\Models\Skema;
@@ -15,7 +16,7 @@ use Livewire\WithPagination;
 #[Title('Monitoring Penilaian')]
 class MonitoringPenilaian extends Component
 {
-    use InteractsWithProdiContext, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
 
     public string $search = '';
 
@@ -63,7 +64,7 @@ class MonitoringPenilaian extends Component
             ->when($this->filterStatus, fn ($q) => $q->where('status_berkas', $this->filterStatus))
             ->orderByDesc('tahun_masuk')
             ->orderBy('nim')
-            ->paginate(10);
+            ->paginate($this->barisPerHalaman());
 
         $mahasiswaList->getCollection()->transform(function ($mhs) {
             $mhs->progresAsesor = $mhs->penugasanAsesor->map(function ($penugasan) use ($mhs) {

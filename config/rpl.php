@@ -46,6 +46,9 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // Rows-per-page choices offered under every paginated table; the first is the default.
+    'pilihan_baris_per_halaman' => [15, 25, 50, 100],
+
     /*
      * Folder holding the legacy system's "uploads/..." files (attachment.file_path
      * is relative to it). Keep it outside public/ — these are personal documents.
