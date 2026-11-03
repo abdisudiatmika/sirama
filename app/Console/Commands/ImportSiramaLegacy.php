@@ -26,8 +26,8 @@ use Illuminate\Support\Str;
 /**
  * One-off migration from the legacy "sirama" system (a prior RPL platform
  * at the same institution) into this app's schema. Scoped to Akuntansi
- * Manajerial and Akuntansi Perpajakan only, per the source data's actual
- * shape: the legacy system tracked "LPD"/"Koperasi" cohorts as separate
+ * Manajerial and Akuntansi Perpajakan (incl. the D2-graduate skema) only,
+ * per the source data's actual shape: the legacy system tracked "LPD"/"Koperasi" cohorts as separate
  * `jurusan` rows even though they share one matakuliah catalog and one
  * real prodi each — confirmed by joining students' course picks back to
  * the catalog they actually resolve to.
@@ -39,7 +39,9 @@ use Illuminate\Support\Str;
  */
 class ImportSiramaLegacy extends Command
 {
-    protected $signature = 'sirama:import {--fresh-password= : override the random password prefix, for testing}';
+    protected $signature = 'sirama:import
+        {--jurusan= : batasi ke ID jurusan lama tertentu, dipisah koma (mis. 8); default semua}
+        {--dry-run : jalankan lalu batalkan semua perubahan}';
 
     protected $description = 'Import mahasiswa/asesor/matakuliah/penilaian data from the legacy sirama_legacy MySQL database';
 
@@ -67,15 +69,37 @@ class ImportSiramaLegacy extends Command
     /** @var array<int,string> used usernames this run, to keep generated ones unique */
     private array $usedUsernames = [];
 
+    /**
+     * Legacy jurusan => where it lands. Several jurusan can be cohorts of one
+     * prodi, and "katalog" is the legacy jurusan whose mata_kuliah rows the
+     * students' picks actually resolve to (confirmed by joining picks back).
+     */
+    private const JURUSAN = [
+        7 => ['prodi' => 'AKM', 'skema' => 'Akuntansi Manajerial — Reguler', 'katalog' => 12],
+        10 => ['prodi' => 'AKM', 'skema' => 'Akuntansi Manajerial — Skema LPD', 'katalog' => 12],
+        12 => ['prodi' => 'AKM', 'skema' => 'Akuntansi Manajerial — Skema Koperasi', 'katalog' => 12],
+        5 => ['prodi' => 'AKP', 'skema' => 'Akuntansi Perpajakan — Reguler', 'katalog' => 5],
+        8 => ['prodi' => 'AKP', 'skema' => 'Akuntansi Perpajakan — Lulusan D2', 'katalog' => 8],
+    ];
+
+    private const PRODI = [
+        'AKM' => ['nama' => 'Akuntansi Manajerial', 'jenjang' => 'D4'],
+        'AKP' => ['nama' => 'Akuntansi Perpajakan', 'jenjang' => 'D3'],
+    ];
+
+    /** @var list<int> legacy jurusan ids this run imports */
+    private array $jurusanDipilih = [];
+
     public static function daftarkanKoneksiLegacy(): void
     {
         Config::set('database.connections.sirama_legacy', [
             'driver' => 'mysql',
             'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
             'port' => env('LEGACY_DB_PORT', 3306),
+            // Credentials come only from .env (LEGACY_DB_*), never from code.
             'database' => env('LEGACY_DB_DATABASE', 'sirama_legacy'),
-            'username' => env('LEGACY_DB_USERNAME', 'root'),
-            'password' => env('LEGACY_DB_PASSWORD', 'Abdi085237'),
+            'username' => env('LEGACY_DB_USERNAME'),
+            'password' => env('LEGACY_DB_PASSWORD'),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
         ]);
@@ -97,7 +121,17 @@ class ImportSiramaLegacy extends Command
     {
         self::daftarkanKoneksiLegacy();
 
-        $this->info('Memulai impor data dari sirama_legacy...');
+        $this->jurusanDipilih = $this->option('jurusan')
+            ? array_map('intval', explode(',', $this->option('jurusan')))
+            : array_keys(self::JURUSAN);
+
+        if ($tidakDikenal = array_diff($this->jurusanDipilih, array_keys(self::JURUSAN))) {
+            $this->error('Jurusan tidak dikenal: '.implode(', ', $tidakDikenal).'. Pilihan: '.implode(', ', array_keys(self::JURUSAN)));
+
+            return self::FAILURE;
+        }
+
+        $this->info('Memulai impor data dari sirama_legacy untuk jurusan '.implode(', ', $this->jurusanDipilih).'...');
 
         DB::connection()->beginTransaction();
 
@@ -112,8 +146,13 @@ class ImportSiramaLegacy extends Command
             $this->importPenilaian($penilaianService);
             $this->finalisasiStatusBerkas();
 
-            DB::connection()->commit();
-            $this->info('Impor selesai dan disimpan.');
+            if ($this->option('dry-run')) {
+                DB::connection()->rollBack();
+                $this->warn('DRY RUN — semua perubahan dibatalkan, tidak ada yang disimpan.');
+            } else {
+                DB::connection()->commit();
+                $this->info('Impor selesai dan disimpan.');
+            }
         } catch (\Throwable $e) {
             DB::connection()->rollBack();
             $this->error('Impor dibatalkan, semua perubahan di-rollback: '.$e->getMessage());
@@ -130,47 +169,32 @@ class ImportSiramaLegacy extends Command
         return DB::connection('sirama_legacy')->table($table);
     }
 
-    /**
-     * jurusan 7/10/12 (kode AKM*) really are one prodi ("Akuntansi
-     * Manajerial") with 3 cohorts (Reguler/LPD/Koperasi); jurusan 5 (AKP1)
-     * is "Akuntansi Perpajakan" Reguler. Confirmed by joining students'
-     * course picks back to the mata_kuliah catalog they resolve to.
-     */
     private function importProdiDanSkema(): void
     {
         $this->line('Impor Prodi & Skema...');
 
-        $akm = Prodi::firstOrCreate(['kode' => 'AKM'], ['nama' => 'Akuntansi Manajerial', 'jenjang' => 'D4', 'is_aktif' => true]);
-        $akp = Prodi::firstOrCreate(['kode' => 'AKP'], ['nama' => 'Akuntansi Perpajakan', 'jenjang' => 'D3', 'is_aktif' => true]);
-
-        $skemaDefinisi = [
-            7 => ['prodi' => $akm, 'nama' => 'Akuntansi Manajerial — Reguler'],
-            10 => ['prodi' => $akm, 'nama' => 'Akuntansi Manajerial — Skema LPD'],
-            12 => ['prodi' => $akm, 'nama' => 'Akuntansi Manajerial — Skema Koperasi'],
-            5 => ['prodi' => $akp, 'nama' => 'Akuntansi Perpajakan — Reguler'],
-        ];
-
-        foreach ($skemaDefinisi as $legacyJurusanId => $def) {
-            $this->prodiMap[$legacyJurusanId] = $def['prodi']->id;
+        foreach ($this->jurusanDipilih as $legacyJurusanId) {
+            $def = self::JURUSAN[$legacyJurusanId];
+            $prodi = Prodi::firstOrCreate(['kode' => $def['prodi']], self::PRODI[$def['prodi']] + ['is_aktif' => true]);
+            $this->prodiMap[$legacyJurusanId] = $prodi->id;
 
             $skema = Skema::firstOrCreate(
-                ['prodi_id' => $def['prodi']->id, 'nama' => $def['nama'], 'tahun_akademik' => '2026/2027'],
+                ['prodi_id' => $prodi->id, 'nama' => $def['skema'], 'tahun_akademik' => '2026/2027'],
                 ['jenis' => 'RPL', 'is_aktif' => true]
             );
             $this->skemaMap[$legacyJurusanId] = $skema->id;
         }
     }
 
-    /**
-     * All AKM-family students' picks resolve to jurusan_id=12's catalog;
-     * AKP students resolve to jurusan_id=5's own catalog. So only those
-     * two jurusan_id values hold the "real" matakuliah masters to import.
-     */
+    /** Each catalog's courses are attached only to the skema whose students pick from it. */
     private function importMatakuliahDanCpmk(): void
     {
         $this->line('Impor Matakuliah & CPMK...');
 
-        $katalogJurusan = [12 => $this->prodiMap[12], 5 => $this->prodiMap[5]];
+        $katalogJurusan = [];
+        foreach ($this->jurusanDipilih as $jurusanId) {
+            $katalogJurusan[self::JURUSAN[$jurusanId]['katalog']] = $this->prodiMap[$jurusanId];
+        }
 
         foreach ($katalogJurusan as $legacyJurusanId => $prodiId) {
             $mataKuliahRows = $this->legacy('mata_kuliah')->where('jurusan_id', $legacyJurusanId)->get();
@@ -188,10 +212,10 @@ class ImportSiramaLegacy extends Command
                 );
                 $this->matakuliahMap[$mk->id] = $matakuliah->id;
 
-                // Attach to every skema under this prodi (legacy had no
-                // per-skema matakuliah linkage — mata_kuliah_skema was empty).
+                // Legacy had no per-skema linkage (mata_kuliah_skema was empty),
+                // so link to the skema whose students use this catalog.
                 foreach ($this->skemaMap as $legacyJId => $skemaId) {
-                    if ($this->prodiMap[$legacyJId] === $prodiId) {
+                    if (self::JURUSAN[$legacyJId]['katalog'] === $legacyJurusanId) {
                         DB::table('skema_matakuliah')->insertOrIgnore([
                             'skema_id' => $skemaId,
                             'matakuliah_id' => $matakuliah->id,
@@ -208,12 +232,11 @@ class ImportSiramaLegacy extends Command
                     ->get();
 
                 foreach ($cpmkRows as $i => $cpmkRow) {
-                    $cpmk = Cpmk::create([
-                        'matakuliah_id' => $matakuliah->id,
-                        'kode' => 'CPMK'.($i + 1),
-                        'deskripsi' => $cpmkRow->indikator_capaian,
-                        'urutan' => $i + 1,
-                    ]);
+                    // Keyed on position so a re-run reuses the CPMK instead of duplicating it.
+                    $cpmk = Cpmk::firstOrCreate(
+                        ['matakuliah_id' => $matakuliah->id, 'urutan' => $i + 1],
+                        ['kode' => 'CPMK'.($i + 1), 'deskripsi' => $cpmkRow->indikator_capaian],
+                    );
                     $this->cpmkMap[$cpmkRow->id] = $cpmk->id;
                 }
             }
@@ -254,7 +277,10 @@ class ImportSiramaLegacy extends Command
         foreach ($rows as $row) {
             $email = $row->asesor_email ?: $row->user_email ?: 'asesor'.$row->id.'@import.local';
 
-            $user = User::where('email', $email)->first();
+            // Fall back to the name so assessors merged by hand (two legacy emails,
+            // one person) are not recreated as a duplicate account.
+            $user = User::where('email', $email)->first()
+                ?? User::role('asesor')->where('name', $row->name)->first();
 
             if (! $user) {
                 $user = User::create([
@@ -285,7 +311,7 @@ class ImportSiramaLegacy extends Command
 
         $rows = $this->legacy('mahasiswa as m')
             ->join('users as u', 'u.id', '=', 'm.user_id')
-            ->whereIn('u.jurusan_id', [5, 7, 10, 12])
+            ->whereIn('u.jurusan_id', $this->jurusanDipilih)
             ->select('m.*', 'u.jurusan_id as legacy_jurusan_id')
             ->get();
 
@@ -297,8 +323,13 @@ class ImportSiramaLegacy extends Command
             if ($existingUser) {
                 $existingMahasiswa = Mahasiswa::where('user_id', $existingUser->id)->first();
 
-                if ($existingMahasiswa) {
+                // Only reuse an account already in this skema — never fold another
+                // skema's student (e.g. the same person in Reguler) into this one.
+                if ($existingMahasiswa && $existingMahasiswa->skema_id === $this->skemaMap[$row->legacy_jurusan_id]) {
                     $this->mahasiswaMap[$row->id] = $existingMahasiswa->id;
+                } elseif ($existingMahasiswa) {
+                    $this->newLine();
+                    $this->warn("  Dilewati: {$row->email} sudah terdaftar di skema lain (mahasiswa #{$existingMahasiswa->id}).");
                 }
 
                 $bar->advance();
@@ -375,7 +406,7 @@ class ImportSiramaLegacy extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info('  '.Mahasiswa::whereIn('prodi_id', array_unique($this->prodiMap))->count().' mahasiswa total di prodi terkait.');
+        $this->info('  '.count($this->mahasiswaMap).' mahasiswa diproses.');
     }
 
     private function importPengajuanMk(): void
@@ -386,7 +417,7 @@ class ImportSiramaLegacy extends Command
             ->join('mahasiswa as m', 'm.id', '=', 'mp.mahasiswa_id')
             ->join('users as u', 'u.id', '=', 'm.user_id')
             ->join('mata_kuliah_semester as mks', 'mks.id', '=', 'mp.mata_kuliah_semester_id')
-            ->whereIn('u.jurusan_id', [5, 7, 10, 12])
+            ->whereIn('u.jurusan_id', $this->jurusanDipilih)
             ->select('mp.id', 'mp.mahasiswa_id as legacy_mahasiswa_id', 'mp.nilai_angka', 'mp.nilai_huruf', 'mks.mata_kuliah_id as legacy_matakuliah_id')
             ->get();
 
@@ -456,6 +487,11 @@ class ImportSiramaLegacy extends Command
                 }
 
                 $pengajuan = PengajuanMk::find($pengajuanId);
+
+                $sudahAda = $pengajuan->bukti()->where('kategori', $kategori)->where('url', 'like', 'DATA-LAMA%')->exists();
+                if ($sudahAda) {
+                    continue;
+                }
 
                 $bukti = Bukti::create([
                     'mahasiswa_id' => $pengajuan->mahasiswa_id,
@@ -641,7 +677,7 @@ class ImportSiramaLegacy extends Command
     {
         $this->line('Finalisasi status berkas...');
 
-        $mahasiswaList = Mahasiswa::whereIn('prodi_id', array_unique($this->prodiMap))
+        $mahasiswaList = Mahasiswa::whereIn('id', array_values($this->mahasiswaMap))
             ->with(['pengajuanMk.bukti', 'pengajuanMk.penilaian', 'penugasanAsesor'])
             ->get();
 
