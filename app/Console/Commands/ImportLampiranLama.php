@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\LampiranLama;
+use App\Models\Mahasiswa;
 use App\Services\LampiranLamaService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +71,8 @@ class ImportLampiranLama extends Command
                 }
             }
 
+            $tautan = $this->tautkanKeMatakuliah($mahasiswa);
+
             if ($this->option('dry-run')) {
                 DB::rollBack();
                 $this->warn('DRY RUN — tidak ada yang disimpan.');
@@ -89,8 +92,66 @@ class ImportLampiranLama extends Command
             ['Mahasiswa di luar sistem baru (dilewati)', $hasil['mhs_tidak_ditemukan']],
             ['File ditemukan di folder', $hasil['file_ada'].' ('.round($ukuran / 1048576).' MB)'],
             ['File TIDAK ditemukan di folder', $hasil['file_hilang']],
+            ['Tautan file ke mata kuliah '.($this->option('dry-run') ? '(akan dibuat)' : 'baru'), $tautan['baru']],
+            ['Tautan sudah ada sebelumnya', $tautan['sudah_ada']],
+            ['Tautan dilewati (mata kuliah tidak diajukan di sistem baru)', $tautan['dilewati']],
         ]);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Rebuilds which file backed which course (legacy mata_kuliah_attachment)
+     * so Form 5/7 can show the real evidence per course. A legacy pick is
+     * matched to our submission by student + course code, as in import-mk-asal.
+     *
+     * @param  array<int, Mahasiswa|false>  $mahasiswa  legacy mahasiswa id => our student
+     * @return array{baru: int, sudah_ada: int, dilewati: int}
+     */
+    private function tautkanKeMatakuliah(array $mahasiswa): array
+    {
+        $hasil = ['baru' => 0, 'sudah_ada' => 0, 'dilewati' => 0];
+        $lampiranPerLegacyId = LampiranLama::pluck('id', 'legacy_id');
+
+        $baris = DB::connection('sirama_legacy')->table('mata_kuliah_attachment as mka')
+            ->join('mata_kuliah_pilihan as mp', 'mp.id', '=', 'mka.mata_kuliah_pilihan_id')
+            ->join('mata_kuliah_semester as mks', 'mks.id', '=', 'mp.mata_kuliah_semester_id')
+            ->join('mata_kuliah as mk', 'mk.id', '=', 'mks.mata_kuliah_id')
+            ->select('mka.attachment_id', 'mp.mahasiswa_id', 'mk.kode_mk')
+            ->distinct()
+            ->get();
+
+        $pengajuanPerKode = [];
+
+        foreach ($baris as $b) {
+            $lampiranId = $lampiranPerLegacyId[$b->attachment_id] ?? null;
+            $mhs = $mahasiswa[$b->mahasiswa_id] ?? false;
+
+            if (! $lampiranId || ! $mhs) {
+                $hasil['dilewati']++;
+
+                continue;
+            }
+
+            $pengajuanPerKode[$mhs->id] ??= $mhs->pengajuanMk()->join('matakuliah', 'matakuliah.id', '=', 'pengajuan_mk.matakuliah_id')
+                ->pluck('pengajuan_mk.id', 'matakuliah.kode');
+            $pengajuanId = $pengajuanPerKode[$mhs->id][$b->kode_mk] ?? null;
+
+            if (! $pengajuanId) {
+                $hasil['dilewati']++;
+
+                continue;
+            }
+
+            $dibuat = DB::table('pengajuan_lampiran_lama')->insertOrIgnore([
+                'pengajuan_mk_id' => $pengajuanId,
+                'lampiran_lama_id' => $lampiranId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $dibuat ? $hasil['baru']++ : $hasil['sudah_ada']++;
+        }
+
+        return $hasil;
     }
 }

@@ -72,6 +72,16 @@ class Form7Generator extends FormulirTransferSks
         };
     }
 
+    /** Legacy attachment labels onto the same five columns (CV and declarations are not evidence types here). */
+    private const KOLOM_LABEL_LAMA = [
+        'ijazah' => 'ijazah',
+        'transkrip' => 'transkrip',
+        'sertifikat_kompetensi' => 'sertifikat',
+        'sertifikat_pelatihan' => 'sertifikat',
+        'pengalaman' => 'pengalaman',
+        'video' => 'pengalaman',
+    ];
+
     protected function tabel(Section $section, Collection $pengajuan, ?int $asesorId): void
     {
         $k = self::KOLOM;
@@ -106,7 +116,9 @@ class Form7Generator extends FormulirTransferSks
 
         foreach ($pengajuan as $i => $p) {
             $nilai = $asesorId ? $p->penilaian->firstWhere('asesor_id', $asesorId) : null;
-            $adaBukti = $p->bukti->map(fn (Bukti $b) => $this->kolomBukti($b))->filter()->flip();
+            $adaBukti = $p->bukti->map(fn (Bukti $b) => $this->kolomBukti($b))
+                ->concat($p->lampiranLama->map(fn ($l) => self::KOLOM_LABEL_LAMA[$l->label] ?? null))
+                ->filter()->flip();
 
             $tabel->addRow(null, ['cantSplit' => true]);
             $tabel->addCell($k['no'])->addText((string) ($i + 1), self::TEKS, self::TENGAH);

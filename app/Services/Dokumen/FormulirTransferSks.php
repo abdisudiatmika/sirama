@@ -85,6 +85,7 @@ abstract class FormulirTransferSks extends FormulirWord
                 'matakuliah.cpmk' => fn ($q) => $q->orderBy('urutan')->orderBy('id'),
                 'mkAsal',
                 'bukti',
+                'lampiranLama',
                 'penilaian' => fn ($q) => $q->where('jenis', $this->jenisPenilaian()),
             ])
             ->get()

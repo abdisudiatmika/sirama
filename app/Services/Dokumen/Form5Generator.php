@@ -105,6 +105,7 @@ class Form5Generator extends FormulirWord
                 'matakuliah.cpmk' => fn ($q) => $q->orderBy('urutan')->orderBy('id'),
                 'selfAssessment',
                 'bukti',
+                'lampiranLama',
                 'validasiCpmk',
             ])
             ->get();
@@ -182,14 +183,24 @@ class Form5Generator extends FormulirWord
 
     private function isiBukti($sel, PengajuanMk $pengajuan): void
     {
-        if ($pengajuan->bukti->isEmpty()) {
+        // Real files from the legacy system first; the migration's placeholder
+        // evidence only stood in for them, so it is dropped once they exist.
+        $daftar = $pengajuan->lampiranLama
+            ->sortBy(fn ($l) => [$l->namaLabel(), $l->id])
+            ->map(fn ($l) => $l->namaLabel().': '.$l->nama_file)
+            ->concat($pengajuan->bukti
+                ->reject(fn ($b) => str_starts_with((string) $b->url, 'DATA-LAMA') && $pengajuan->lampiranLama->isNotEmpty())
+                ->map(fn ($b) => $b->jenis_bukti.($b->judul ? ': '.$b->judul : '')))
+            ->values();
+
+        if ($daftar->isEmpty()) {
             $sel->addText('-', ['size' => 10], ['spaceAfter' => 0]);
 
             return;
         }
 
-        foreach ($pengajuan->bukti as $i => $bukti) {
-            $sel->addText(($i + 1).'. '.$bukti->jenis_bukti.($bukti->judul ? ': '.$bukti->judul : ''), ['size' => 10], ['spaceAfter' => 40]);
+        foreach ($daftar as $i => $teks) {
+            $sel->addText(($i + 1).'. '.$teks, ['size' => 10], ['spaceAfter' => 40]);
         }
     }
 

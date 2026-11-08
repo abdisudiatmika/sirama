@@ -33,6 +33,12 @@ class PengajuanMk extends Model
         return $this->belongsToMany(Bukti::class, 'pengajuan_bukti');
     }
 
+    /** Files the student attached to this course in the legacy system. */
+    public function lampiranLama(): BelongsToMany
+    {
+        return $this->belongsToMany(LampiranLama::class, 'pengajuan_lampiran_lama')->withTimestamps();
+    }
+
     public function selfAssessment(): HasMany
     {
         return $this->hasMany(SelfAssessment::class);
