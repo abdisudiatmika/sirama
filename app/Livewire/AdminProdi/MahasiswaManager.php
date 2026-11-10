@@ -347,7 +347,7 @@ class MahasiswaManager extends Component
         $dokumen = app(DokumenMahasiswaService::class);
 
         $panelMahasiswa = $this->panelMahasiswaId
-            ? Mahasiswa::with(['user', 'skema', 'biodata'])->find($this->panelMahasiswaId)
+            ? Mahasiswa::with(['user', 'skema', 'biodata', 'hasilPleno'])->find($this->panelMahasiswaId)
             : null;
 
         $mahasiswaList = Mahasiswa::where('prodi_id', $this->prodiId)

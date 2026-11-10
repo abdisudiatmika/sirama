@@ -27,6 +27,7 @@ class RekognisiSiakadExport extends DefaultValueBinder implements FromArray, Sho
         private int $prodiId,
         private ?int $skemaId,
         private PenilaianService $penilaian,
+        private ?int $mahasiswaId = null,
     ) {}
 
     public function headings(): array
@@ -41,6 +42,7 @@ class RekognisiSiakadExport extends DefaultValueBinder implements FromArray, Sho
     {
         $mahasiswa = Mahasiswa::where('prodi_id', $this->prodiId)
             ->when($this->skemaId, fn ($q) => $q->where('skema_id', $this->skemaId))
+            ->when($this->mahasiswaId, fn ($q) => $q->whereKey($this->mahasiswaId))
             ->whereHas('hasilPleno', fn ($q) => $q->where('status', 'Direkognisi'))
             ->with([
                 'hasilPleno' => fn ($q) => $q->where('status', 'Direkognisi'),
