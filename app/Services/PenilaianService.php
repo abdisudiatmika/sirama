@@ -121,9 +121,12 @@ class PenilaianService
      */
     public function rataRataAsesmen(PengajuanMk $pengajuanMk): array
     {
-        $nilaiPerAsesor = Penilaian::where('pengajuan_mk_id', $pengajuanMk->id)
-            ->whereNotNull('nilai_akhir')
-            ->get()
+        // Reuse eager-loaded scores when present so bulk exports don't query per course.
+        $penilaian = $pengajuanMk->relationLoaded('penilaian')
+            ? $pengajuanMk->penilaian->whereNotNull('nilai_akhir')
+            : Penilaian::where('pengajuan_mk_id', $pengajuanMk->id)->whereNotNull('nilai_akhir')->get();
+
+        $nilaiPerAsesor = $penilaian
             ->groupBy('asesor_id')
             ->map(fn ($rows) => $rows->first()->nilai_akhir);
 

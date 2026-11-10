@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminProdi\DokumenZipController;
+use App\Http\Controllers\AdminProdi\EksporSiakadController;
 use App\Http\Controllers\AdminProdi\FormulirWordController;
 use App\Http\Controllers\AdminProdi\LampiranLamaController;
 use App\Http\Controllers\AdminProdi\RekapitulasiExcelController;
@@ -29,6 +30,7 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/arsip-lama', ArsipSistemLama::class)->name('arsip-lama');
         Route::get('/arsip-lama/file/{lampiran}', [LampiranLamaController::class, 'file'])->name('arsip-lama.file');
         Route::get('/arsip-lama/{mahasiswa}/unduh', [LampiranLamaController::class, 'zip'])->name('arsip-lama.zip');
+        Route::get('/ekspor-siakad', EksporSiakadController::class)->name('ekspor-siakad');
         Route::get('/monitoring', MonitoringPenilaian::class)->name('monitoring');
         Route::get('/monitoring/{mahasiswa}', Rekapitulasi::class)->name('rekapitulasi');
         Route::get('/monitoring/{mahasiswa}/pdf', RekapitulasiPdfController::class)->name('rekapitulasi.pdf');

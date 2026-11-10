@@ -13,6 +13,8 @@ class MkAsal extends Model
         'pengajuan_mk_id',
         'kode_asal',
         'nama_mk_asal',
+        'sks_asal',
+        'nilai_huruf_asal',
         'cpmk_asal',
     ];
 

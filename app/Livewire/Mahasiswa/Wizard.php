@@ -11,6 +11,7 @@ use App\Models\Pernyataan;
 use App\Models\SelfAssessment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -120,6 +121,10 @@ class Wizard extends Component
     public string $mkAsalNama = '';
 
     public string $mkAsalCpmk = '';
+
+    public ?int $mkAsalSks = null;
+
+    public string $mkAsalNilai = '';
 
     public ?int $editingMkAsalId = null;
 
@@ -548,22 +553,27 @@ class Wizard extends Component
         $data = $this->validate([
             'mkAsalKode' => ['required', 'string', 'max:30'],
             'mkAsalNama' => ['required', 'string', 'max:150'],
+            'mkAsalSks' => ['required', 'integer', 'min:1', 'max:24'],
+            'mkAsalNilai' => ['required', Rule::in(array_column(config('rpl.konversi_huruf'), 'huruf'))],
             'mkAsalCpmk' => ['required', 'string'],
+        ], [], [
+            'mkAsalSks' => 'SKS asal',
+            'mkAsalNilai' => 'nilai huruf asal',
         ]);
 
+        $isi = [
+            'kode_asal' => $data['mkAsalKode'],
+            'nama_mk_asal' => $data['mkAsalNama'],
+            'sks_asal' => $data['mkAsalSks'],
+            'nilai_huruf_asal' => $data['mkAsalNilai'],
+            'cpmk_asal' => $data['mkAsalCpmk'],
+        ];
+
         if ($this->editingMkAsalId) {
-            MkAsal::where('id', $this->editingMkAsalId)->update([
-                'kode_asal' => $data['mkAsalKode'],
-                'nama_mk_asal' => $data['mkAsalNama'],
-                'cpmk_asal' => $data['mkAsalCpmk'],
-            ]);
+            $this->mkAsalMilikSendiri()->whereKey($this->editingMkAsalId)->update($isi);
         } else {
-            MkAsal::create([
-                'pengajuan_mk_id' => $this->mkAsalPengajuanMkId,
-                'kode_asal' => $data['mkAsalKode'],
-                'nama_mk_asal' => $data['mkAsalNama'],
-                'cpmk_asal' => $data['mkAsalCpmk'],
-            ]);
+            abort_unless(PengajuanMk::where('mahasiswa_id', $this->mahasiswaId)->whereKey($this->mkAsalPengajuanMkId)->exists(), 403);
+            MkAsal::create($isi + ['pengajuan_mk_id' => $this->mkAsalPengajuanMkId]);
         }
 
         $this->resetMkAsalForm();
@@ -571,16 +581,24 @@ class Wizard extends Component
 
     public function editMkAsalRow(int $id): void
     {
-        $row = MkAsal::findOrFail($id);
+        $row = $this->mkAsalMilikSendiri()->findOrFail($id);
         $this->editingMkAsalId = $row->id;
         $this->mkAsalKode = $row->kode_asal;
         $this->mkAsalNama = $row->nama_mk_asal;
+        $this->mkAsalSks = $row->sks_asal;
+        $this->mkAsalNilai = (string) $row->nilai_huruf_asal;
         $this->mkAsalCpmk = $row->cpmk_asal;
     }
 
     public function hapusMkAsalRow(int $id): void
     {
-        MkAsal::where('id', $id)->delete();
+        $this->mkAsalMilikSendiri()->whereKey($id)->delete();
+    }
+
+    /** The ids above arrive from the browser, so only ever touch this student's own rows. */
+    private function mkAsalMilikSendiri()
+    {
+        return MkAsal::whereHas('pengajuanMk', fn ($q) => $q->where('mahasiswa_id', $this->mahasiswaId));
     }
 
     public function batalEditMkAsal(): void
@@ -597,7 +615,7 @@ class Wizard extends Component
 
     private function resetMkAsalForm(): void
     {
-        $this->reset(['editingMkAsalId', 'mkAsalKode', 'mkAsalNama', 'mkAsalCpmk']);
+        $this->reset(['editingMkAsalId', 'mkAsalKode', 'mkAsalNama', 'mkAsalSks', 'mkAsalNilai', 'mkAsalCpmk']);
         $this->resetErrorBag();
     }
 

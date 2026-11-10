@@ -636,6 +636,19 @@
                         <label class="mb-1.5 block text-xs font-medium text-slate-600">Nama MK Asal</label>
                         <input wire:model="mkAsalNama" type="text" class="block w-full rounded-lg border-0 px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600" placeholder="Pendidikan Pancasila">
                     </div>
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-600">SKS Asal</label>
+                        <input wire:model="mkAsalSks" type="number" min="1" max="24" class="block w-full rounded-lg border-0 px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600" placeholder="2">
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-600">Nilai Huruf Asal (sesuai transkrip)</label>
+                        <select wire:model="mkAsalNilai" class="block w-full rounded-lg border-0 px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                            <option value="">— pilih —</option>
+                            @foreach ($hurufOptions as $huruf)
+                                <option value="{{ $huruf }}">{{ $huruf }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-600">CPMK Asal</label>
@@ -643,6 +656,8 @@
                 </div>
                 @error('mkAsalKode') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
                 @error('mkAsalNama') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
+                @error('mkAsalSks') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
+                @error('mkAsalNilai') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
                 @error('mkAsalCpmk') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
                 <div class="flex justify-end gap-2">
                     @if ($editingMkAsalId)
@@ -654,12 +669,15 @@
 
             <div class="max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
                 @php
-                    $rows = $mkAsalPengajuanMkId ? \App\Models\MkAsal::where('pengajuan_mk_id', $mkAsalPengajuanMkId)->get() : collect();
+                    $rows = $mkAsalPengajuanMkId ? \App\Models\MkAsal::where('pengajuan_mk_id', $mkAsalPengajuanMkId)->whereHas('pengajuanMk', fn ($q) => $q->where('mahasiswa_id', $mahasiswaId))->get() : collect();
                 @endphp
                 @forelse ($rows as $row)
                     <div class="flex items-start justify-between gap-3 px-4 py-3">
                         <div>
                             <p class="text-sm font-semibold text-slate-900">{{ $row->kode_asal }} — {{ $row->nama_mk_asal }}</p>
+                            @if ($row->sks_asal || $row->nilai_huruf_asal)
+                                <p class="text-xs text-slate-500">{{ $row->sks_asal ? $row->sks_asal.' SKS' : '' }}{{ $row->sks_asal && $row->nilai_huruf_asal ? ' · ' : '' }}{{ $row->nilai_huruf_asal ? 'Nilai '.$row->nilai_huruf_asal : '' }}</p>
+                            @endif
                             <p class="text-sm text-slate-600">{{ $row->cpmk_asal }}</p>
                         </div>
                         <div class="flex flex-shrink-0 gap-3">
