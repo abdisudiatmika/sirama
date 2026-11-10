@@ -67,9 +67,17 @@ class DokumenMahasiswaService
     public function linkMahasiswa(int $nomor, Mahasiswa $mahasiswa): ?string
     {
         return match ($nomor) {
-            4 => $mahasiswa->dokumenCv?->url,
+            4 => $mahasiswa->dokumenCv?->url ?? $this->cvSistemLama($mahasiswa),
             default => null,
         };
+    }
+
+    /** Migrated students have no CV link yet, but may have uploaded one in the legacy system. */
+    private function cvSistemLama(Mahasiswa $mahasiswa): ?string
+    {
+        $cv = $mahasiswa->lampiranLama()->where('label', 'cv')->orderByDesc('id')->first();
+
+        return $cv ? route('admin-prodi.arsip-lama.file', $cv) : null;
     }
 
     /** @return list<array{nomor: int, judul: string, unduhan: list<array{label: string, url: string}>, link: ?string, catatan: ?string}> */
@@ -97,6 +105,7 @@ class DokumenMahasiswaService
                 'link' => $link,
                 'catatan' => match (true) {
                     $nomor === 4 && ! $link => 'Mahasiswa belum mengirim link Daftar Riwayat Hidup',
+                    $nomor === 4 && ! $mahasiswa->dokumenCv => 'CV dari arsip sistem lama',
                     ! $unduhan && ! $link => 'Belum tersedia di sistem',
                     $nomor === 1 && ! $mahasiswa->biodata => 'Biodata belum diisi, isian akan kosong',
                     $nomor === 2 && ! $mahasiswa->skema => 'Belum ada skema, memakai semua mata kuliah prodi',
