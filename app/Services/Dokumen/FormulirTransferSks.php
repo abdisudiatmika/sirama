@@ -44,6 +44,17 @@ abstract class FormulirTransferSks extends FormulirWord
         return true;
     }
 
+    /** True when each assessor gets their own copy; false for one document covering all assessors. */
+    protected function perAsesor(): bool
+    {
+        return true;
+    }
+
+    public function daftarVarian(Mahasiswa $mahasiswa): array
+    {
+        return $this->perAsesor() ? $this->varianPerAsesor($mahasiswa) : [['varian' => null, 'label' => 'Word']];
+    }
+
     protected function isi(Section $section, Mahasiswa $mahasiswa): void
     {
         $mahasiswa->loadMissing(['user', 'prodi', 'biodata', 'pendidikanTerakhir']);
@@ -61,7 +72,7 @@ abstract class FormulirTransferSks extends FormulirWord
             ['Jenjang Pendidikan Sebelumnya', $this->rekap->jenjangSebelumnya($mahasiswa)],
             ['Program Studi', 'KELAS RPL '.mb_strtoupper($mahasiswa->prodi->nama)],
             ['Level KKNI', null],
-            ['Asesor', $penugasan?->asesor?->user?->name],
+            ...($this->perAsesor() ? [['Asesor', $penugasan?->asesor?->user?->name]] : []),
         ] as [$label, $nilai]) {
             $identitas->addRow();
             $identitas->addCell(3200)->addText($label, [], ['spaceAfter' => 0]);

@@ -13,6 +13,11 @@ trait VarianPerAsesor
 {
     public function daftarVarian(Mahasiswa $mahasiswa): array
     {
+        return $this->varianPerAsesor($mahasiswa);
+    }
+
+    protected function varianPerAsesor(Mahasiswa $mahasiswa): array
+    {
         $penugasan = $mahasiswa->penugasanAsesor()->orderBy('urutan')->get();
 
         if ($penugasan->isEmpty()) {

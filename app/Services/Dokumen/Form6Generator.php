@@ -8,18 +8,51 @@ use PhpOffice\PhpWord\Element\Section;
 
 /**
  * Asesmen Transfer SKS dari Pendidikan Formal: the student's prior courses
- * (mk_asal) next to the target course, with that assessor's formal result.
+ * (mk_asal) next to the target course. One document for all assessors:
+ * "Hasil" is Lulus/Tidak Lulus from the average of the assessors' formal
+ * scores against the course's minimum score; the average itself is not shown.
  */
 class Form6Generator extends FormulirTransferSks
 {
     private const KOLOM = [
         'no' => 500, 'kode_asal' => 1100, 'nama_asal' => 1800, 'cp_asal' => 3000,
-        'nama_tujuan' => 1800, 'cp_tujuan' => 3000, 'kesenjangan' => 1300, 'hasil' => 700, 'catatan' => 1300,
+        'nama_tujuan' => 1800, 'cp_tujuan' => 3000, 'kesenjangan' => 1200, 'hasil' => 900, 'catatan' => 1200,
     ];
 
     public function nomor(): int
     {
         return 6;
+    }
+
+    protected function perAsesor(): bool
+    {
+        return false;
+    }
+
+    /** "Lulus"/"Tidak Lulus", or null while no assessor has scored the formal route yet. */
+    private function hasil(Collection $penilaian, int $skorMinimum): ?string
+    {
+        $nilai = $penilaian->whereNotNull('nilai')->groupBy('asesor_id')->map(fn ($r) => $r->first()->nilai);
+
+        if ($nilai->isEmpty()) {
+            return null;
+        }
+
+        $rata = (int) round($nilai->sum() / $nilai->count(), 0, PHP_ROUND_HALF_UP);
+
+        return $rata >= $skorMinimum ? 'Lulus' : 'Tidak Lulus';
+    }
+
+    /** Distinct notes from all assessors; identical notes (e.g. "tidak ada") appear once. */
+    private function gabungCatatan(Collection $penilaian, string $kolom): string
+    {
+        $catatan = $penilaian->pluck($kolom)->map(fn ($v) => trim((string) $v))->filter();
+        // A lone "-" or "." means the assessor left it blank; only keep it if nobody wrote anything.
+        $berisi = $catatan->reject(fn ($v) => preg_match('/^[\s\-–—.]*$/u', $v));
+
+        return ($berisi->isNotEmpty() ? $berisi : $catatan->take(1))
+            ->unique(fn ($v) => mb_strtolower($v))
+            ->implode('; ');
     }
 
     protected function judul(): string
@@ -70,7 +103,7 @@ class Form6Generator extends FormulirTransferSks
         }
 
         foreach ($pengajuan as $i => $p) {
-            $nilai = $asesorId ? $p->penilaian->firstWhere('asesor_id', $asesorId) : null;
+            $hasil = $this->hasil($p->penilaian, (int) $p->matakuliah->skor_minimum);
             // One row per prior course so its code, name and CP line up; the target-side
             // columns are merged down across them.
             $daftarAsal = $p->mkAsal->isEmpty() ? collect([null]) : $p->mkAsal->values();
@@ -102,9 +135,9 @@ class Form6Generator extends FormulirTransferSks
 
                 $selTujuan['nama_tujuan']->addText($p->matakuliah->nama, self::TEKS, ['spaceAfter' => 0]);
                 $this->daftar($selTujuan['cp_tujuan'], $p->matakuliah->cpmk->pluck('deskripsi'), bernomor: true);
-                $selTujuan['kesenjangan']->addText((string) $nilai?->catatan_kesenjangan, self::TEKS, ['spaceAfter' => 0]);
-                $selTujuan['hasil']->addText($nilai?->nilai !== null ? (string) $nilai->nilai : '', self::TEKS, self::TENGAH);
-                $selTujuan['catatan']->addText((string) $nilai?->catatan_reviewer, self::TEKS, ['spaceAfter' => 0]);
+                $selTujuan['kesenjangan']->addText($this->gabungCatatan($p->penilaian, 'catatan_kesenjangan'), self::TEKS, ['spaceAfter' => 0]);
+                $selTujuan['hasil']->addText((string) $hasil, self::TEKS + ['bold' => $hasil !== null], self::TENGAH);
+                $selTujuan['catatan']->addText($this->gabungCatatan($p->penilaian, 'catatan_reviewer'), self::TEKS, ['spaceAfter' => 0]);
             }
         }
     }
