@@ -44,10 +44,43 @@ abstract class FormulirTransferSks extends FormulirWord
         return true;
     }
 
-    /** True when each assessor gets their own copy; false for one document covering all assessors. */
+    /**
+     * Form 6 and 7 are one document per student covering all assessors (the prodi
+     * reports pass/fail, not each assessor's score). Kept switchable in case a
+     * per-assessor copy is wanted again.
+     */
     protected function perAsesor(): bool
     {
-        return true;
+        return false;
+    }
+
+    /**
+     * "Lulus"/"Tidak Lulus" from the average of the assessors' scores for this route
+     * against the course's minimum, or null while no assessor has scored it yet.
+     */
+    protected function hasil(Collection $penilaian, int $skorMinimum): ?string
+    {
+        $nilai = $penilaian->whereNotNull('nilai')->groupBy('asesor_id')->map(fn ($r) => $r->first()->nilai);
+
+        if ($nilai->isEmpty()) {
+            return null;
+        }
+
+        $rata = (int) round($nilai->sum() / $nilai->count(), 0, PHP_ROUND_HALF_UP);
+
+        return $rata >= $skorMinimum ? 'Lulus' : 'Tidak Lulus';
+    }
+
+    /** Distinct notes from all assessors; identical notes (e.g. "tidak ada") appear once. */
+    protected function gabungCatatan(Collection $penilaian, string $kolom): string
+    {
+        $catatan = $penilaian->pluck($kolom)->map(fn ($v) => trim((string) $v))->filter();
+        // A lone "-" or "." means the assessor left it blank; only keep it if nobody wrote anything.
+        $berisi = $catatan->reject(fn ($v) => preg_match('/^[\s\-–—.]*$/u', $v));
+
+        return ($berisi->isNotEmpty() ? $berisi : $catatan->take(1))
+            ->unique(fn ($v) => mb_strtolower($v))
+            ->implode('; ');
     }
 
     public function daftarVarian(Mahasiswa $mahasiswa): array

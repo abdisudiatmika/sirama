@@ -8,9 +8,7 @@ use PhpOffice\PhpWord\Element\Section;
 
 /**
  * Asesmen Transfer SKS dari Pendidikan Formal: the student's prior courses
- * (mk_asal) next to the target course. One document for all assessors:
- * "Hasil" is Lulus/Tidak Lulus from the average of the assessors' formal
- * scores against the course's minimum score; the average itself is not shown.
+ * (mk_asal) next to the target course, with the formal-route result.
  */
 class Form6Generator extends FormulirTransferSks
 {
@@ -22,37 +20,6 @@ class Form6Generator extends FormulirTransferSks
     public function nomor(): int
     {
         return 6;
-    }
-
-    protected function perAsesor(): bool
-    {
-        return false;
-    }
-
-    /** "Lulus"/"Tidak Lulus", or null while no assessor has scored the formal route yet. */
-    private function hasil(Collection $penilaian, int $skorMinimum): ?string
-    {
-        $nilai = $penilaian->whereNotNull('nilai')->groupBy('asesor_id')->map(fn ($r) => $r->first()->nilai);
-
-        if ($nilai->isEmpty()) {
-            return null;
-        }
-
-        $rata = (int) round($nilai->sum() / $nilai->count(), 0, PHP_ROUND_HALF_UP);
-
-        return $rata >= $skorMinimum ? 'Lulus' : 'Tidak Lulus';
-    }
-
-    /** Distinct notes from all assessors; identical notes (e.g. "tidak ada") appear once. */
-    private function gabungCatatan(Collection $penilaian, string $kolom): string
-    {
-        $catatan = $penilaian->pluck($kolom)->map(fn ($v) => trim((string) $v))->filter();
-        // A lone "-" or "." means the assessor left it blank; only keep it if nobody wrote anything.
-        $berisi = $catatan->reject(fn ($v) => preg_match('/^[\s\-–—.]*$/u', $v));
-
-        return ($berisi->isNotEmpty() ? $berisi : $catatan->take(1))
-            ->unique(fn ($v) => mb_strtolower($v))
-            ->implode('; ');
     }
 
     protected function judul(): string

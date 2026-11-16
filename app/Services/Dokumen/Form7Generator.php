@@ -17,7 +17,7 @@ class Form7Generator extends FormulirTransferSks
 {
     private const KOLOM = [
         'no' => 400, 'ijazah' => 900, 'transkrip' => 900, 'karya' => 1000, 'sertifikat' => 1100, 'pengalaman' => 1100,
-        'nama_tujuan' => 1700, 'cp_tujuan' => 3500, 'kesenjangan' => 1400, 'hasil' => 600, 'catatan' => 1900,
+        'nama_tujuan' => 1700, 'cp_tujuan' => 3500, 'kesenjangan' => 1350, 'hasil' => 900, 'catatan' => 1650,
     ];
 
     private const JENIS_BUKTI = [
@@ -115,7 +115,7 @@ class Form7Generator extends FormulirTransferSks
         }
 
         foreach ($pengajuan as $i => $p) {
-            $nilai = $asesorId ? $p->penilaian->firstWhere('asesor_id', $asesorId) : null;
+            $hasil = $this->hasil($p->penilaian, (int) $p->matakuliah->skor_minimum);
             $adaBukti = $p->bukti->map(fn (Bukti $b) => $this->kolomBukti($b))
                 ->concat($p->lampiranLama->map(fn ($l) => self::KOLOM_LABEL_LAMA[$l->label] ?? null))
                 ->filter()->flip();
@@ -127,9 +127,9 @@ class Form7Generator extends FormulirTransferSks
             }
             $tabel->addCell($k['nama_tujuan'])->addText($p->matakuliah->nama, self::TEKS, ['spaceAfter' => 0]);
             $this->daftar($tabel->addCell($k['cp_tujuan']), $p->matakuliah->cpmk->pluck('deskripsi'), bernomor: true);
-            $tabel->addCell($k['kesenjangan'])->addText((string) $nilai?->catatan_kesenjangan, self::TEKS, ['spaceAfter' => 0]);
-            $tabel->addCell($k['hasil'])->addText($nilai?->nilai !== null ? (string) $nilai->nilai : '', self::TEKS, self::TENGAH);
-            $tabel->addCell($k['catatan'])->addText((string) $nilai?->catatan_reviewer, self::TEKS, ['spaceAfter' => 0]);
+            $tabel->addCell($k['kesenjangan'])->addText($this->gabungCatatan($p->penilaian, 'catatan_kesenjangan'), self::TEKS, ['spaceAfter' => 0]);
+            $tabel->addCell($k['hasil'])->addText((string) $hasil, self::TEKS + ['bold' => $hasil !== null], self::TENGAH);
+            $tabel->addCell($k['catatan'])->addText($this->gabungCatatan($p->penilaian, 'catatan_reviewer'), self::TEKS, ['spaceAfter' => 0]);
         }
     }
 }
