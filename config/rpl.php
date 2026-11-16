@@ -31,13 +31,14 @@ return [
     */
 
     'konversi_huruf' => [
-        ['min' => 80, 'max' => 100, 'huruf' => 'A', 'bobot' => 4.00],
-        ['min' => 71, 'max' => 79, 'huruf' => 'AB', 'bobot' => 3.50],
-        ['min' => 65, 'max' => 70, 'huruf' => 'B', 'bobot' => 3.00],
-        ['min' => 60, 'max' => 64, 'huruf' => 'BC', 'bobot' => 2.50],
-        ['min' => 55, 'max' => 59, 'huruf' => 'C', 'bobot' => 2.00],
-        ['min' => 40, 'max' => 54, 'huruf' => 'D', 'bobot' => 1.00],
-        ['min' => 0, 'max' => 39, 'huruf' => 'E', 'bobot' => 0.00],
+        // PNB grading table, as applied in the RPL result SK (A from 81, AB from 76).
+        ['min' => 81, 'max' => 100, 'huruf' => 'A', 'bobot' => 4.00],
+        ['min' => 76, 'max' => 80, 'huruf' => 'AB', 'bobot' => 3.50],
+        ['min' => 71, 'max' => 75, 'huruf' => 'B', 'bobot' => 3.00],
+        ['min' => 66, 'max' => 70, 'huruf' => 'BC', 'bobot' => 2.50],
+        ['min' => 61, 'max' => 65, 'huruf' => 'C', 'bobot' => 2.00],
+        ['min' => 41, 'max' => 60, 'huruf' => 'D', 'bobot' => 1.00],
+        ['min' => 0, 'max' => 40, 'huruf' => 'E', 'bobot' => 0.00],
     ],
 
     /*

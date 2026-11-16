@@ -26,13 +26,13 @@ class FormPenilaian extends Component
     /** @var array<int,array{valid:bool,asli:bool,terkini:bool,memadai:bool}> keyed by cpmk_id */
     public array $vatm = [];
 
-    public ?int $nilaiFormal = null;
+    public ?float $nilaiFormal = null;
 
     public string $catatanFormal = '';
 
     public string $kesenjanganFormal = '';
 
-    public ?int $nilaiInformal = null;
+    public ?float $nilaiInformal = null;
 
     public string $catatanInformal = '';
 
@@ -127,7 +127,7 @@ class FormPenilaian extends Component
     public function simpanFormal(PenilaianService $service): void
     {
         $this->validate([
-            'nilaiFormal' => ['required', 'integer', 'min:0', 'max:100'],
+            'nilaiFormal' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:100'],
             'catatanFormal' => ['nullable', 'string'],
             'kesenjanganFormal' => ['nullable', 'string'],
         ]);
@@ -148,7 +148,7 @@ class FormPenilaian extends Component
     public function simpanInformal(PenilaianService $service): void
     {
         $this->validate([
-            'nilaiInformal' => ['required', 'integer', 'min:0', 'max:100'],
+            'nilaiInformal' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:100'],
             'catatanInformal' => ['nullable', 'string'],
             'kesenjanganInformal' => ['nullable', 'string'],
         ]);

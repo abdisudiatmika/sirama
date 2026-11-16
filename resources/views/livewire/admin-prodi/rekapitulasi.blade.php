@@ -64,11 +64,11 @@
                             </td>
                             <td class="px-3 py-3 text-slate-600">{{ $row->pengajuan?->nilai_mandiri_angka ?? '—' }}</td>
                             @foreach ($row->nilai_per_asesor as $nilai)
-                                <td class="px-3 py-3 text-slate-600">{{ $nilai ?? '—' }}</td>
+                                <td class="px-3 py-3 text-slate-600">{{ \App\Support\Nilai::format($nilai) ?? '—' }}</td>
                             @endforeach
                             <td class="px-3 py-3">
                                 @if ($row->rata_rata !== null)
-                                    <span class="font-semibold text-slate-900">{{ $row->rata_rata }}</span>
+                                    <span class="font-semibold text-slate-900">{{ \App\Support\Nilai::format($row->rata_rata) }}</span>
                                     @if ($row->jumlah_penilai < $row->total_asesor)
                                         <span class="text-xs text-amber-600">({{ $row->jumlah_penilai }} dari {{ $row->total_asesor }} asesor)</span>
                                     @endif

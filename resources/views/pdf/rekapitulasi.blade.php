@@ -106,11 +106,11 @@
                     <td class="mk-nama">{{ $row->matakuliah->nama }}@if ($row->matakuliah->dapat_direkognisi) <span class="star">*</span>@endif</td>
                     <td class="center">{{ $row->pengajuan?->nilai_mandiri_angka ?? '—' }}</td>
                     @foreach ($row->nilai_per_asesor as $nilai)
-                        <td class="center">{{ $nilai ?? '—' }}</td>
+                        <td class="center">{{ \App\Support\Nilai::format($nilai) ?? '—' }}</td>
                     @endforeach
                     <td class="center">
                         @if ($row->rata_rata !== null)
-                            <strong>{{ $row->rata_rata }}</strong>
+                            <strong>{{ \App\Support\Nilai::format($row->rata_rata) }}</strong>
                             @if ($row->jumlah_penilai < $row->total_asesor)
                                 <span class="catatan-penilai">({{ $row->jumlah_penilai }}/{{ $row->total_asesor }} asesor)</span>
                             @endif

@@ -19,6 +19,14 @@ class Penilaian extends Model
         'nilai_akhir',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'nilai' => 'float',
+            'nilai_akhir' => 'float',
+        ];
+    }
+
     public function pengajuanMk(): BelongsTo
     {
         return $this->belongsTo(PengajuanMk::class);

@@ -6,6 +6,7 @@ use App\Models\Mahasiswa;
 use App\Models\PengajuanMk;
 use App\Services\PenilaianService;
 use App\Services\RekapitulasiService;
+use App\Support\Nilai;
 use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\SimpleType\TblWidth;
@@ -125,7 +126,7 @@ class Form8Generator extends FormulirWord
             $tabel->addCell($k['nama'])->addText($mk->nama, self::TEKS, ['spaceAfter' => 0]);
             $tabel->addCell($k['transfer'])->addText($diakui && $jalur === 'transfer' ? (string) $mk->sks : '', self::TEKS, self::TENGAH);
             $tabel->addCell($k['perolehan'])->addText($diakui && $jalur === 'perolehan' ? (string) $mk->sks : '', self::TEKS, self::TENGAH);
-            $tabel->addCell($k['huruf'])->addText($r->rata_rata !== null ? $this->penilaian->konversiHuruf((int) $r->rata_rata)['huruf'] : '', self::TEKS, self::TENGAH);
+            $tabel->addCell($k['huruf'])->addText($r->rata_rata !== null ? $this->penilaian->konversiHuruf((float) $r->rata_rata)['huruf'] : '', self::TEKS, self::TENGAH);
             $tabel->addCell($k['status'])->addText((string) $r->status, self::TEKS, self::TENGAH);
             $tabel->addCell($k['keterangan'])->addText($this->keterangan($r), ['size' => 8], ['spaceAfter' => 0]);
         }
@@ -158,6 +159,6 @@ class Form8Generator extends FormulirWord
             return $r->rata_rata === null ? 'Belum dinilai asesor' : '';
         }
 
-        return "Usulan: {$r->usulan} ({$r->rata_rata}; {$r->jumlah_penilai}/{$r->total_asesor} asesor)";
+        return 'Usulan: '.$r->usulan.' ('.Nilai::format($r->rata_rata)."; {$r->jumlah_penilai}/{$r->total_asesor} asesor)";
     }
 }

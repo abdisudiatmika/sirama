@@ -22,18 +22,18 @@ class PenilaianService
      *   Both:          gabungan = formal + (bobot_informal * informal), capped at batas
      *                  nilai_akhir = MAX(formal, MIN(gabungan, batas))
      */
-    public function hitungNilaiAkhir(?int $nilaiFormal, ?int $nilaiInformal): ?int
+    public function hitungNilaiAkhir(?float $nilaiFormal, ?float $nilaiInformal): ?float
     {
         if ($nilaiFormal === null && $nilaiInformal === null) {
             return null;
         }
 
         if ($nilaiFormal === null) {
-            return $nilaiInformal;
+            return round($nilaiInformal, 2);
         }
 
         if ($nilaiInformal === null) {
-            return $nilaiFormal;
+            return round($nilaiFormal, 2);
         }
 
         $batas = (int) config('rpl.batas_nilai_gabungan');
@@ -41,24 +41,20 @@ class PenilaianService
 
         $gabungan = $nilaiFormal + ($bobot * $nilaiInformal);
 
-        return (int) max($nilaiFormal, min($gabungan, $batas));
+        return round(max($nilaiFormal, min($gabungan, $batas)), 2);
     }
 
     /**
-     * Convert a numeric score to its institutional letter grade + weight,
-     * using the configurable table in config('rpl.konversi_huruf').
+     * Convert a score to its institutional letter grade + weight, using the
+     * configurable table in config('rpl.konversi_huruf'). Scores carry two
+     * decimals, so each grade starts at its 'min' and runs up to the next
+     * grade's (80.93 is still AB when A starts at 81).
      */
-    public function konversiHuruf(int $nilai): array
+    public function konversiHuruf(float $nilai): array
     {
-        $tabel = config('rpl.konversi_huruf');
+        $tabel = collect(config('rpl.konversi_huruf'))->sortByDesc('min')->values();
 
-        foreach ($tabel as $range) {
-            if ($nilai >= $range['min'] && $nilai <= $range['max']) {
-                return $range;
-            }
-        }
-
-        return end($tabel);
+        return $tabel->first(fn ($range) => $nilai >= $range['min']) ?? $tabel->last();
     }
 
     /**
@@ -70,7 +66,7 @@ class PenilaianService
         PengajuanMk $pengajuanMk,
         Asesor $asesor,
         string $jenis,
-        int $nilai,
+        float $nilai,
         ?string $catatanReviewer,
         ?string $catatanKesenjangan,
     ): Penilaian {
@@ -136,7 +132,8 @@ class PenilaianService
             return ['rata_rata' => null, 'jumlah_penilai' => 0];
         }
 
-        $rataRata = (int) round($nilaiPerAsesor->sum() / $jumlahPenilai, 0, PHP_ROUND_HALF_UP);
+        // Two decimals, as on the official SK (e.g. 80.67), since the letter grade depends on them.
+        $rataRata = round($nilaiPerAsesor->sum() / $jumlahPenilai, 2, PHP_ROUND_HALF_UP);
 
         return ['rata_rata' => $rataRata, 'jumlah_penilai' => $jumlahPenilai];
     }

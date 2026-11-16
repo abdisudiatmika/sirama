@@ -48,7 +48,7 @@
                     <form wire:submit="simpanFormal" class="mt-4 space-y-4">
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-slate-700">Nilai (0–100)</label>
-                            <input wire:model="nilaiFormal" type="number" min="0" max="100" class="block w-32 rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                            <input wire:model="nilaiFormal" type="number" min="0" max="100" step="0.01" class="block w-32 rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
                             @error('nilaiFormal') <p class="mt-1.5 text-sm text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
@@ -70,7 +70,7 @@
                     <form wire:submit="simpanInformal" class="mt-4 space-y-4">
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-slate-700">Nilai (0–100)</label>
-                            <input wire:model="nilaiInformal" type="number" min="0" max="100" class="block w-32 rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                            <input wire:model="nilaiInformal" type="number" min="0" max="100" step="0.01" class="block w-32 rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
                             @error('nilaiInformal') <p class="mt-1.5 text-sm text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>

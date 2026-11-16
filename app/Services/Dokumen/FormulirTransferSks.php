@@ -66,7 +66,7 @@ abstract class FormulirTransferSks extends FormulirWord
             return null;
         }
 
-        $rata = (int) round($nilai->sum() / $nilai->count(), 0, PHP_ROUND_HALF_UP);
+        $rata = round($nilai->sum() / $nilai->count(), 2, PHP_ROUND_HALF_UP);
 
         return $rata >= $skorMinimum ? 'Lulus' : 'Tidak Lulus';
     }

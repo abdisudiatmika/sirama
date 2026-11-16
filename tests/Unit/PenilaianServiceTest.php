@@ -28,12 +28,12 @@ class PenilaianServiceTest extends TestCase
 
     public function test_formal_saja(): void
     {
-        $this->assertSame(82, $this->service->hitungNilaiAkhir(82, null));
+        $this->assertSame(82.0, $this->service->hitungNilaiAkhir(82, null));
     }
 
     public function test_informal_saja(): void
     {
-        $this->assertSame(78, $this->service->hitungNilaiAkhir(null, 78));
+        $this->assertSame(78.0, $this->service->hitungNilaiAkhir(null, 78));
     }
 
     public function test_tidak_ada_bukti(): void
@@ -44,41 +44,53 @@ class PenilaianServiceTest extends TestCase
     public function test_gabungan_di_bawah_batas(): void
     {
         // 75 + (0.1 * 80) = 83, di bawah batas 85
-        $this->assertSame(83, $this->service->hitungNilaiAkhir(75, 80));
+        $this->assertSame(83.0, $this->service->hitungNilaiAkhir(75, 80));
     }
 
     public function test_gabungan_dibatasi_85(): void
     {
         // 80 + (0.1 * 90) = 89, dibatasi ke 85
-        $this->assertSame(85, $this->service->hitungNilaiAkhir(80, 90));
+        $this->assertSame(85.0, $this->service->hitungNilaiAkhir(80, 90));
     }
 
     public function test_formal_di_atas_batas_tetap_dipakai(): void
     {
         // Gabungan 98 dibatasi 85, tapi formal 90 > 85, jadi 90 yang dipakai
-        $this->assertSame(90, $this->service->hitungNilaiAkhir(90, 80));
+        $this->assertSame(90.0, $this->service->hitungNilaiAkhir(90, 80));
     }
 
     public function test_formal_86_tetap_dipakai_walau_di_atas_batas(): void
     {
         // Gabungan 92 dibatasi 85, tapi formal 86 > 85, jadi 86 yang dipakai
-        $this->assertSame(86, $this->service->hitungNilaiAkhir(86, 60));
+        $this->assertSame(86.0, $this->service->hitungNilaiAkhir(86, 60));
     }
 
-    public function test_konversi_huruf_batas_bawah_dan_atas(): void
+    public function test_gabungan_menyimpan_desimal(): void
+    {
+        // 75 + (0.1 * 83) = 83.3 — kept, not truncated to 83
+        $this->assertSame(83.3, $this->service->hitungNilaiAkhir(75, 83));
+    }
+
+    public function test_konversi_huruf_mengikuti_tabel_pnb_dengan_desimal(): void
     {
         config(['rpl.konversi_huruf' => [
-            ['min' => 80, 'max' => 100, 'huruf' => 'A', 'bobot' => 4.00],
-            ['min' => 71, 'max' => 79, 'huruf' => 'AB', 'bobot' => 3.50],
-            ['min' => 65, 'max' => 70, 'huruf' => 'B', 'bobot' => 3.00],
-            ['min' => 60, 'max' => 64, 'huruf' => 'BC', 'bobot' => 2.50],
-            ['min' => 55, 'max' => 59, 'huruf' => 'C', 'bobot' => 2.00],
-            ['min' => 40, 'max' => 54, 'huruf' => 'D', 'bobot' => 1.00],
-            ['min' => 0, 'max' => 39, 'huruf' => 'E', 'bobot' => 0.00],
+            ['min' => 81, 'max' => 100, 'huruf' => 'A', 'bobot' => 4.00],
+            ['min' => 76, 'max' => 80, 'huruf' => 'AB', 'bobot' => 3.50],
+            ['min' => 71, 'max' => 75, 'huruf' => 'B', 'bobot' => 3.00],
+            ['min' => 66, 'max' => 70, 'huruf' => 'BC', 'bobot' => 2.50],
+            ['min' => 61, 'max' => 65, 'huruf' => 'C', 'bobot' => 2.00],
+            ['min' => 41, 'max' => 60, 'huruf' => 'D', 'bobot' => 1.00],
+            ['min' => 0, 'max' => 40, 'huruf' => 'E', 'bobot' => 0.00],
         ]]);
 
-        $this->assertSame('A', $this->service->konversiHuruf(80)['huruf']);
-        $this->assertSame('AB', $this->service->konversiHuruf(79)['huruf']);
-        $this->assertSame('E', $this->service->konversiHuruf(0)['huruf']);
+        // Cases taken from the official SK Gelombang 1 AKM 2026/2027.
+        $this->assertSame('A', $this->service->konversiHuruf(81)['huruf']);
+        $this->assertSame('AB', $this->service->konversiHuruf(80.93)['huruf']);
+        $this->assertSame('AB', $this->service->konversiHuruf(76)['huruf']);
+        $this->assertSame('B', $this->service->konversiHuruf(75.83)['huruf']);
+        $this->assertSame('B', $this->service->konversiHuruf(72.23)['huruf']);
+        $this->assertSame('D', $this->service->konversiHuruf(60.99)['huruf']);
+        $this->assertSame('E', $this->service->konversiHuruf(40.5)['huruf']);
+        $this->assertSame(3.5, $this->service->konversiHuruf(80.67)['bobot']);
     }
 }
