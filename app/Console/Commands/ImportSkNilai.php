@@ -31,6 +31,7 @@ class ImportSkNilai extends Command
     protected $signature = 'sirama:import-sk-nilai
         {file : path file SK (.docx, .pdf, atau .txt hasil pdftotext -layout)}
         {--prodi= : kode prodi, mis. AKM}
+        {--nim=* : pilih akun bila nama ganda, format "Nama Mahasiswa=NIM" (boleh diulang)}
         {--dry-run : jalankan lalu batalkan semua perubahan}';
 
     protected $description = 'Impor nilai akhir dan keputusan rekognisi dari SK Direktur (.docx) ke database';
@@ -203,6 +204,14 @@ class ImportSkNilai extends Command
         $cocok = Mahasiswa::where('prodi_id', $prodiId)->with('user')->get()
             ->filter(fn ($m) => $rapikan($m->user->name) === $target);
 
+        // --nim="Nama=NIM" settles a name that belongs to more than one account.
+        foreach ($this->option('nim') as $pilihan) {
+            [$untuk, $nim] = array_map('trim', explode('=', $pilihan, 2)) + [1 => null];
+            if ($nim && $rapikan($untuk) === $target) {
+                $cocok = $cocok->where('nim', $nim);
+            }
+        }
+
         if ($cocok->count() === 1) {
             return $cocok->first();
         }
@@ -249,11 +258,13 @@ class ImportSkNilai extends Command
 
         foreach ($baris as $i => $l) {
             if (preg_match('/^\s*No\.?\s+Kode\s+MK/iu', $l)) {
+                // Skip blank lines and the upper half of a header split over two lines ("Nilai" / "Akhir").
                 $j = $i - 1;
-                while ($j >= 0 && trim($baris[$j]) === '') {
+                while ($j >= 0 && preg_match('/^\s*(Nilai|Akhir|Huruf|SKS)?\s*$/iu', $baris[$j])) {
                     $j--;
                 }
-                $mahasiswa[] = ['nama' => trim(preg_replace('/\s+/u', ' ', $baris[$j] ?? '')), 'kode' => [], 'nilai' => []];
+                $nama = preg_replace('/^\d+\.\s*/u', '', trim(preg_replace('/\s+/u', ' ', $baris[$j] ?? '')));
+                $mahasiswa[] = ['nama' => $nama, 'kode' => [], 'nilai' => []];
                 $sekarang = array_key_last($mahasiswa);
 
                 continue;
@@ -261,7 +272,7 @@ class ImportSkNilai extends Command
             if ($sekarang === null) {
                 continue;
             }
-            if (preg_match_all('/\b([A-Z]{2,4}\d{6,})\b/', $l, $kode)) {
+            if (preg_match_all('/\b([A-Z]{2,4}\d[A-Z0-9]{3,})\b/', $l, $kode)) {
                 array_push($mahasiswa[$sekarang]['kode'], ...$kode[1]);
             }
             if (preg_match('/(?<![\d,.])(\d{1,3}(?:[.,]\d{1,2})?)\s+(AB|BC|A|B|C|D|E)\s*$/', $l, $m)) {
@@ -340,6 +351,11 @@ class ImportSkNilai extends Command
 
     private function nomorSk(string $teks): ?string
     {
+        // Letter numbers look like 10555/DST/PL8/TU.01.04/2026; some SKs print them without "Nomor".
+        if (preg_match('~\b(\d{3,}/[A-Z][\w.]*(?:/[\w.]+)*/\d{4})\b~u', $teks, $m)) {
+            return $m[1];
+        }
+
         return preg_match('/NOMOR\s*:?\s*([^\s]+)/iu', $teks, $m) ? $m[1] : null;
     }
 
