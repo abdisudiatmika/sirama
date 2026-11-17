@@ -12,11 +12,12 @@ use App\Services\PenilaianService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Process;
 use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\IOFactory;
 
 /**
- * Writes the final scores from a Director's SK (RPL results, .docx) into the
+ * Writes the final scores from a Director's SK (RPL results, .docx or .pdf) into the
  * database. The SK lists one table per student ("N. Name", then Kode MK |
  * Nama | SKS | ... | Nilai Akhir | Huruf). The SK's final score becomes every
  * assigned assessor's score, so their average equals the SK exactly.
@@ -28,7 +29,7 @@ use PhpOffice\PhpWord\IOFactory;
 class ImportSkNilai extends Command
 {
     protected $signature = 'sirama:import-sk-nilai
-        {file : path file SK (.docx)}
+        {file : path file SK (.docx, .pdf, atau .txt hasil pdftotext -layout)}
         {--prodi= : kode prodi, mis. AKM}
         {--dry-run : jalankan lalu batalkan semua perubahan}';
 
@@ -49,7 +50,13 @@ class ImportSkNilai extends Command
             return self::FAILURE;
         }
 
-        ['nomor' => $nomorSk, 'tanggal' => $tanggalSk, 'mahasiswa' => $daftar] = $this->bacaSk($this->argument('file'));
+        try {
+            ['nomor' => $nomorSk, 'tanggal' => $tanggalSk, 'mahasiswa' => $daftar] = $this->bacaSk($this->argument('file'));
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $this->line('SK nomor  : '.($nomorSk ?? '(tidak terbaca)'));
         $this->line('Tanggal   : '.($tanggalSk?->toDateString() ?? '(tidak terbaca)'));
@@ -210,6 +217,74 @@ class ImportSkNilai extends Command
     /** @return array{nomor: ?string, tanggal: ?Carbon, mahasiswa: list<array{nama: string, baris: list<array{kode: string, nama: string, nilai: float, huruf: string}>}>} */
     private function bacaSk(string $file): array
     {
+        return match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+            'pdf' => $this->bacaSkTeks($this->pdfKeTeks($file)),
+            'txt' => $this->bacaSkTeks(file_get_contents($file)),
+            default => $this->bacaSkWord($file),
+        };
+    }
+
+    /** Text of a PDF with its layout kept, via poppler's pdftotext. */
+    private function pdfKeTeks(string $file): string
+    {
+        $proses = Process::run(['pdftotext', '-layout', $file, '-']);
+        if ($proses->failed()) {
+            throw new \RuntimeException('pdftotext tidak tersedia di server. Ubah dulu PDF ke teks di komputer lain: pdftotext -layout "SK.pdf" "SK.txt", lalu impor file .txt-nya.');
+        }
+
+        return $proses->output();
+    }
+
+    /**
+     * Reads an SK exported as text (pdftotext -layout). Each student's table
+     * starts with the name line just above the "No | Kode MK" header. Wrapped
+     * cells can push a score onto the line below its course code, so codes and
+     * scores are collected in order per table and paired by position.
+     */
+    private function bacaSkTeks(string $isi): array
+    {
+        $baris = preg_split('/\R/u', $isi);
+        $mahasiswa = [];
+        $sekarang = null;
+
+        foreach ($baris as $i => $l) {
+            if (preg_match('/^\s*No\.?\s+Kode\s+MK/iu', $l)) {
+                $j = $i - 1;
+                while ($j >= 0 && trim($baris[$j]) === '') {
+                    $j--;
+                }
+                $mahasiswa[] = ['nama' => trim(preg_replace('/\s+/u', ' ', $baris[$j] ?? '')), 'kode' => [], 'nilai' => []];
+                $sekarang = array_key_last($mahasiswa);
+
+                continue;
+            }
+            if ($sekarang === null) {
+                continue;
+            }
+            if (preg_match_all('/\b([A-Z]{2,4}\d{6,})\b/', $l, $kode)) {
+                array_push($mahasiswa[$sekarang]['kode'], ...$kode[1]);
+            }
+            if (preg_match('/(?<![\d,.])(\d{1,3}(?:[.,]\d{1,2})?)\s+(AB|BC|A|B|C|D|E)\s*$/', $l, $m)) {
+                $mahasiswa[$sekarang]['nilai'][] = [round((float) str_replace(',', '.', $m[1]), 2), $m[2]];
+            }
+        }
+
+        $hasil = [];
+        foreach ($mahasiswa as $mhs) {
+            if (count($mhs['kode']) !== count($mhs['nilai'])) {
+                throw new \RuntimeException("Tabel {$mhs['nama']}: ".count($mhs['kode']).' kode MK tetapi '.count($mhs['nilai']).' nilai, periksa file SK.');
+            }
+            $hasil[] = [
+                'nama' => $mhs['nama'],
+                'baris' => array_map(fn ($kode, $n) => ['kode' => $kode, 'nama' => $kode, 'nilai' => $n[0], 'huruf' => $n[1]], $mhs['kode'], $mhs['nilai']),
+            ];
+        }
+
+        return ['nomor' => $this->nomorSk($isi), 'tanggal' => $this->tanggalSk($isi), 'mahasiswa' => $hasil];
+    }
+
+    private function bacaSkWord(string $file): array
+    {
         $word = IOFactory::load($file);
         $teks = function ($el) use (&$teks): string {
             if (method_exists($el, 'getElements')) {
@@ -260,16 +335,26 @@ class ImportSkNilai extends Command
             }
         }
 
-        $nomor = preg_match('/NOMOR\s*:?\s*([^\s]+)/iu', $semuaTeks, $m) ? $m[1] : null;
-        $tanggal = null;
-        // The enactment date ("Ditetapkan ... Pada Tanggal 13 Mei 2026") is the last such
-        // phrase; earlier ones describe the assessment period.
-        if (preg_match_all('/Pada\s+Tanggal\s+(\d{1,2})\s+(\p{L}+)\s+(\d{4})/iu', $semuaTeks, $semua, PREG_SET_ORDER)) {
-            $m = end($semua);
-            $bulan = ['januari' => 1, 'februari' => 2, 'maret' => 3, 'april' => 4, 'mei' => 5, 'juni' => 6, 'juli' => 7, 'agustus' => 8, 'september' => 9, 'oktober' => 10, 'november' => 11, 'desember' => 12][mb_strtolower($m[2])] ?? null;
-            $tanggal = $bulan ? Carbon::create((int) $m[3], $bulan, (int) $m[1]) : null;
-        }
+        return ['nomor' => $this->nomorSk($semuaTeks), 'tanggal' => $this->tanggalSk($semuaTeks), 'mahasiswa' => $mahasiswa];
+    }
 
-        return ['nomor' => $nomor, 'tanggal' => $tanggal, 'mahasiswa' => $mahasiswa];
+    private function nomorSk(string $teks): ?string
+    {
+        return preg_match('/NOMOR\s*:?\s*([^\s]+)/iu', $teks, $m) ? $m[1] : null;
+    }
+
+    /**
+     * The enactment date ("Ditetapkan ... Pada Tanggal 13 Mei 2026") is the last
+     * such phrase; earlier ones describe the assessment period.
+     */
+    private function tanggalSk(string $teks): ?Carbon
+    {
+        if (! preg_match_all('/Pada\s+Tanggal\s+(\d{1,2})\s+(\p{L}+)\s+(\d{4})/iu', $teks, $semua, PREG_SET_ORDER)) {
+            return null;
+        }
+        $m = end($semua);
+        $bulan = ['januari' => 1, 'februari' => 2, 'maret' => 3, 'april' => 4, 'mei' => 5, 'juni' => 6, 'juli' => 7, 'agustus' => 8, 'september' => 9, 'oktober' => 10, 'november' => 11, 'desember' => 12][mb_strtolower($m[2])] ?? null;
+
+        return $bulan ? Carbon::create((int) $m[3], $bulan, (int) $m[1]) : null;
     }
 }
