@@ -13,6 +13,7 @@ class HasilPleno extends Model
         'mahasiswa_id',
         'matakuliah_id',
         'status',
+        'nilai_huruf',
         'catatan_pleno',
         'ditetapkan_oleh',
         'tanggal_pleno',

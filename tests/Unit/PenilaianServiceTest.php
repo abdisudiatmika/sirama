@@ -93,4 +93,14 @@ class PenilaianServiceTest extends TestCase
         $this->assertSame('E', $this->service->konversiHuruf(40.5)['huruf']);
         $this->assertSame(3.5, $this->service->konversiHuruf(80.67)['bobot']);
     }
+
+    public function test_huruf_akhir_memakai_huruf_sk_bila_ada(): void
+    {
+        // SK Gelombang 3 AKP grades 64.33 as BC although the table gives C.
+        $this->assertSame('BC', $this->service->hurufAkhir(64.33, 'BC')['huruf']);
+        $this->assertSame(2.5, (float) $this->service->hurufAkhir(64.33, 'BC')['bobot']);
+        $this->assertSame('C', $this->service->hurufAkhir(64.33)['huruf']);
+        $this->assertSame('C', $this->service->hurufAkhir(64.33, 'XX')['huruf']);
+        $this->assertNull($this->service->hurufAkhir(null));
+    }
 }

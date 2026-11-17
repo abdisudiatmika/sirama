@@ -108,7 +108,7 @@ class ImportSkNilai extends Command
 
                     HasilPleno::updateOrCreate(
                         ['mahasiswa_id' => $mahasiswa->id, 'matakuliah_id' => $matakuliah->id],
-                        ['status' => 'Direkognisi', 'catatan_pleno' => $catatanSk, 'tanggal_pleno' => $tanggalSk],
+                        ['status' => 'Direkognisi', 'nilai_huruf' => $baris['huruf'] ?: null, 'catatan_pleno' => $catatanSk, 'tanggal_pleno' => $tanggalSk],
                     );
                     $diakui[] = $matakuliah->id;
                     $hitung['direkognisi']++;
@@ -122,7 +122,7 @@ class ImportSkNilai extends Command
                 foreach ($mahasiswa->pengajuanMk()->whereNotIn('matakuliah_id', $diakui)->get() as $lain) {
                     HasilPleno::updateOrCreate(
                         ['mahasiswa_id' => $mahasiswa->id, 'matakuliah_id' => $lain->matakuliah_id],
-                        ['status' => 'Tidak Direkognisi', 'catatan_pleno' => 'Tidak tercantum dalam '.$catatanSk, 'tanggal_pleno' => $tanggalSk],
+                        ['status' => 'Tidak Direkognisi', 'nilai_huruf' => null, 'catatan_pleno' => 'Tidak tercantum dalam '.$catatanSk, 'tanggal_pleno' => $tanggalSk],
                     );
                     $hitung['tidak']++;
                 }
@@ -351,12 +351,22 @@ class ImportSkNilai extends Command
 
     private function nomorSk(string $teks): ?string
     {
-        // Letter numbers look like 10555/DST/PL8/TU.01.04/2026; some SKs print them without "Nomor".
-        if (preg_match('~\b(\d{3,}/[A-Z][\w.]*(?:/[\w.]+)*/\d{4})\b~u', $teks, $m)) {
-            return $m[1];
+        // Letter numbers look like 10555/DST/PL8/TU.01.04/2026. The SK's own number is printed
+        // under the title and again on its attachments, while numbers of the regulations it cites
+        // appear once, so take the most frequent one (ties: the first labelled "Nomor"/"No :").
+        $pola = '\\d{3,}/[A-Z][\\w.]*(?:/[\\w.]+)*/\\d{4}';
+        preg_match_all("~\\b({$pola})\\b~u", $teks, $semua);
+        $jumlah = array_count_values($semua[1]);
+        if (! $jumlah) {
+            return null;
+        }
+        $berlabel = preg_match("~\\b(?:Nomor|No)\\s*:?\\s*({$pola})~iu", $teks, $m) ? $m[1] : null;
+        $terbanyak = max($jumlah);
+        if ($berlabel && ($jumlah[$berlabel] ?? 0) === $terbanyak) {
+            return $berlabel;
         }
 
-        return preg_match('/NOMOR\s*:?\s*([^\s]+)/iu', $teks, $m) ? $m[1] : null;
+        return array_search($terbanyak, $jumlah, true);
     }
 
     /**

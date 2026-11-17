@@ -58,6 +58,24 @@ class PenilaianService
     }
 
     /**
+     * Letter grade + weight for a course result: the letter fixed by the SK
+     * when there is one, otherwise the letter for the average score.
+     *
+     * @return array{huruf: string, bobot: float}|null
+     */
+    public function hurufAkhir(?float $rataRata, ?string $hurufSk = null): ?array
+    {
+        if ($hurufSk) {
+            $baris = collect(config('rpl.konversi_huruf'))->firstWhere('huruf', $hurufSk);
+            if ($baris) {
+                return $baris;
+            }
+        }
+
+        return $rataRata !== null ? $this->konversiHuruf($rataRata) : null;
+    }
+
+    /**
      * Save one asesor's score for one jenis (formal/informal), then
      * recompute and mirror the combined nilai_akhir onto every jenis row
      * for that asesor+pengajuan_mk pair (§7.2 caching rationale).

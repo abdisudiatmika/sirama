@@ -56,7 +56,7 @@ class RekognisiSiakadExport extends DefaultValueBinder implements FromArray, Sho
         $baris = [];
 
         foreach ($mahasiswa as $mhs) {
-            $diakui = $mhs->hasilPleno->pluck('matakuliah_id')->flip();
+            $diakui = $mhs->hasilPleno->keyBy('matakuliah_id');
 
             $pengajuan = $mhs->pengajuanMk
                 ->filter(fn ($p) => $diakui->has($p->matakuliah_id))
@@ -65,7 +65,7 @@ class RekognisiSiakadExport extends DefaultValueBinder implements FromArray, Sho
             foreach ($pengajuan as $p) {
                 $mk = $p->matakuliah;
                 $rata = $this->penilaian->rataRataAsesmen($p)['rata_rata'];
-                $konversi = $rata !== null ? $this->penilaian->konversiHuruf($rata) : null;
+                $konversi = $this->penilaian->hurufAkhir($rata, $diakui[$p->matakuliah_id]->nilai_huruf);
                 $daftarAsal = $p->mkAsal->isEmpty() ? collect([null]) : $p->mkAsal;
 
                 foreach ($daftarAsal as $asal) {

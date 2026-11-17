@@ -70,6 +70,11 @@ class RekapitulasiService
                 'total_asesor' => $asesorUrutan->count(),
                 'usulan' => $usulan,
                 'status' => $hasilPleno?->status,
+                // The SK's letter wins over the computed one (only for recognised courses).
+                'huruf' => $this->penilaianService->hurufAkhir(
+                    $rataRata['rata_rata'],
+                    $hasilPleno?->status === 'Direkognisi' ? $hasilPleno->nilai_huruf : null,
+                )['huruf'] ?? null,
             ];
         }) ?? collect();
 
