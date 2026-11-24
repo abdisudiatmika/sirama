@@ -10,6 +10,12 @@ Route::middleware(['auth', 'role:asesor'])
     ->name('asesor.')
     ->group(function () {
         Route::get('/', Dashboard::class)->name('dashboard');
+        Route::get('/tanda-tangan', function () {
+            $path = auth()->user()->asesor?->pathTandaTangan();
+            abort_unless($path, 404);
+
+            return response()->file($path, ['Cache-Control' => 'private, max-age=300']);
+        })->name('ttd');
         Route::get('/mahasiswa/{mahasiswa}', DetailMahasiswa::class)->name('mahasiswa');
         Route::get('/mahasiswa/{mahasiswa}/mk/{pengajuanMk}', FormPenilaian::class)->name('penilaian');
     });

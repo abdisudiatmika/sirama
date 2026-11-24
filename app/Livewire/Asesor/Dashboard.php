@@ -2,15 +2,40 @@
 
 namespace App\Livewire\Asesor;
 
+use App\Services\TandaTanganAsesorService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts.app')]
 #[Title('Dashboard')]
 class Dashboard extends Component
 {
+    use WithFileUploads;
+
+    public $fileTtd = null;
+
+    public bool $ubahTtd = false;
+
+    public function updatedFileTtd(): void
+    {
+        $this->validateOnly('fileTtd', ['fileTtd' => TandaTanganAsesorService::ATURAN], [], ['fileTtd' => 'file tanda tangan']);
+    }
+
+    public function simpanTtd(TandaTanganAsesorService $ttd): void
+    {
+        $this->validate(['fileTtd' => TandaTanganAsesorService::ATURAN], [], ['fileTtd' => 'file tanda tangan']);
+
+        $asesor = Auth::user()->asesor;
+        abort_unless($asesor, 403);
+        $ttd->simpan($asesor, $this->fileTtd);
+
+        $this->reset(['fileTtd', 'ubahTtd']);
+        session()->flash('success', 'Tanda tangan Anda disimpan dan akan tercetak di formulir penilaian.');
+    }
+
     public function render()
     {
         $asesor = Auth::user()->asesor()

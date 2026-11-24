@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminProdi\AsesorController;
 use App\Http\Controllers\AdminProdi\DokumenZipController;
 use App\Http\Controllers\AdminProdi\EksporSiakadController;
 use App\Http\Controllers\AdminProdi\FormulirWordController;
@@ -27,6 +28,8 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/matakuliah', MatakuliahManager::class)->name('matakuliah');
         Route::get('/skema', SkemaManager::class)->name('skema');
         Route::get('/asesor', AsesorDirectory::class)->name('asesor');
+        Route::get('/asesor/ekspor', [AsesorController::class, 'ekspor'])->name('asesor.ekspor');
+        Route::get('/asesor/{asesor}/tanda-tangan', [AsesorController::class, 'tandaTangan'])->name('asesor.ttd');
         Route::get('/mahasiswa', MahasiswaManager::class)->name('mahasiswa');
         Route::get('/mahasiswa/{mahasiswa}/form/{nomor}', FormulirWordController::class)->whereNumber('nomor')->name('mahasiswa.formulir');
         Route::get('/mahasiswa/{mahasiswa}/unduh-semua', DokumenZipController::class)->name('mahasiswa.dokumen-zip');

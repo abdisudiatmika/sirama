@@ -245,7 +245,12 @@ class Form5Generator extends FormulirWord
         $asesor->addText('Asesor '.(self::ROMAWI[$urutan] ?? $urutan).' :', $tebal, $p);
         $asesor->addText('Nama : '.($penugasan?->asesor?->user?->name ?? ''), [], $p);
         $asesor->addText('NIP/NIDN : '.($penugasan?->asesor?->nidn ?? ''), [], $p);
-        $asesor->addText('Tanggal/Tanda tangan :', [], ['spaceAfter' => 700]);
+        $ttd = $penugasan?->asesor?->pathTandaTangan();
+        $asesor->addText('Tanggal/Tanda tangan :', [], ['spaceAfter' => $ttd ? 40 : 700]);
+        if ($ttd) {
+            // Fixed height keeps the block the same size whatever the scan's proportions.
+            $asesor->addImage($ttd, ['height' => 42, 'wrappingStyle' => 'inline']);
+        }
     }
 
     private function tabelPolos(Section $section): TabelWord

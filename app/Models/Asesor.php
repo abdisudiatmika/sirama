@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Asesor extends Model
 {
@@ -15,6 +16,7 @@ class Asesor extends Model
         'nidn',
         'bidang_keahlian',
         'no_hp',
+        'tanda_tangan',
         'is_aktif',
     ];
 
@@ -23,6 +25,14 @@ class Asesor extends Model
         return [
             'is_aktif' => 'boolean',
         ];
+    }
+
+    /** Absolute path of the signature image, or null when none is on disk. */
+    public function pathTandaTangan(): ?string
+    {
+        return $this->tanda_tangan && Storage::disk('local')->exists($this->tanda_tangan)
+            ? Storage::disk('local')->path($this->tanda_tangan)
+            : null;
     }
 
     public function user(): BelongsTo
