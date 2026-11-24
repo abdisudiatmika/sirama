@@ -8,6 +8,7 @@ use App\Models\PengajuanMk;
 use App\Models\Penilaian;
 use App\Models\ValidasiCpmk;
 use App\Services\PenilaianService;
+use App\Services\StatusBerkasService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -166,27 +167,10 @@ class FormPenilaian extends Component
         $this->updateStatusBerkas();
     }
 
-    /**
-     * First save by any asesor flips the file to "sedang_dinilai"; once every
-     * assigned asesor has finished every matakuliah it flips to
-     * "selesai_dinilai" (§9).
-     */
+    /** Same rule as the admin's Excel import (StatusBerkasService). */
     private function updateStatusBerkas(): void
     {
-        $mahasiswa = Mahasiswa::with(['pengajuanMk', 'penugasanAsesor'])->findOrFail($this->mahasiswaId);
-
-        if ($mahasiswa->status_berkas === 'diajukan') {
-            $mahasiswa->update(['status_berkas' => 'sedang_dinilai']);
-        }
-
-        $asesorIds = $mahasiswa->penugasanAsesor->pluck('asesor_id');
-        $semuaSelesai = $asesorIds->isNotEmpty() && $asesorIds->every(
-            fn ($asesorId) => $mahasiswa->pengajuanMk->every(fn ($p) => $p->fresh(['bukti', 'penilaian'])->selesaiDinilaiOleh($asesorId))
-        );
-
-        if ($semuaSelesai && $mahasiswa->status_berkas !== 'selesai_dinilai') {
-            $mahasiswa->update(['status_berkas' => 'selesai_dinilai']);
-        }
+        app(StatusBerkasService::class)->perbarui(Mahasiswa::findOrFail($this->mahasiswaId));
     }
 
     public function simpanDanLanjut(PenilaianService $service): void

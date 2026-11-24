@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminProdi\FormulirWordController;
 use App\Http\Controllers\AdminProdi\LampiranLamaController;
 use App\Http\Controllers\AdminProdi\RekapitulasiExcelController;
 use App\Http\Controllers\AdminProdi\RekapitulasiPdfController;
+use App\Http\Controllers\AdminProdi\TemplateNilaiController;
 use App\Livewire\AdminProdi\ArsipSistemLama;
 use App\Livewire\AdminProdi\AsesorDirectory;
 use App\Livewire\AdminProdi\Dashboard;
@@ -32,6 +33,7 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/arsip-lama/{mahasiswa}/unduh', [LampiranLamaController::class, 'zip'])->name('arsip-lama.zip');
         Route::get('/ekspor-siakad', EksporSiakadController::class)->name('ekspor-siakad');
         Route::get('/mahasiswa/{mahasiswa}/siakad', [EksporSiakadController::class, 'mahasiswa'])->name('mahasiswa.siakad');
+        Route::get('/mahasiswa/{mahasiswa}/template-nilai', TemplateNilaiController::class)->name('mahasiswa.template-nilai');
         Route::get('/monitoring', MonitoringPenilaian::class)->name('monitoring');
         Route::get('/monitoring/{mahasiswa}', Rekapitulasi::class)->name('rekapitulasi');
         Route::get('/monitoring/{mahasiswa}/pdf', RekapitulasiPdfController::class)->name('rekapitulasi.pdf');

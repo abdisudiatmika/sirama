@@ -11,19 +11,22 @@ use App\Models\PenugasanAsesor;
 use App\Models\Skema;
 use App\Models\User;
 use App\Services\Dokumen\DokumenMahasiswaService;
+use App\Services\NilaiAdminService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('Mahasiswa')]
 class MahasiswaManager extends Component
 {
-    use InteractsWithProdiContext, WithBarisPerHalaman, WithPagination;
+    use InteractsWithProdiContext, WithBarisPerHalaman, WithFileUploads, WithPagination;
 
     public bool $showModal = false;
 
@@ -335,11 +338,35 @@ class MahasiswaManager extends Component
         $this->assertProdiAuthorized($mhs->prodi_id);
 
         $this->panelMahasiswaId = $mahasiswaId;
+        $this->reset('fileNilai', 'hasilImporNilai');
     }
 
     public function closePanel(): void
     {
         $this->panelMahasiswaId = null;
+        $this->reset('fileNilai', 'hasilImporNilai');
+    }
+
+    // --- Input nilai asesor oleh admin (Excel) ---
+
+    /** @var TemporaryUploadedFile|null */
+    public $fileNilai = null;
+
+    /** @var array{tersimpan:int,berubah:int,galat:list<string>}|null */
+    public ?array $hasilImporNilai = null;
+
+    public function imporNilai(NilaiAdminService $nilai): void
+    {
+        $this->validate(
+            ['fileNilai' => ['required', 'file', 'mimes:xlsx', 'max:5120']],
+            ['fileNilai.required' => 'Pilih file Excel nilai terlebih dahulu.', 'fileNilai.mimes' => 'Gunakan file .xlsx dari template nilai.'],
+        );
+
+        $mhs = Mahasiswa::findOrFail($this->panelMahasiswaId);
+        $this->assertProdiAuthorized($mhs->prodi_id);
+
+        $this->hasilImporNilai = $nilai->impor($mhs, $this->fileNilai->getRealPath(), Auth::id());
+        $this->reset('fileNilai');
     }
 
     public function render()
@@ -347,7 +374,7 @@ class MahasiswaManager extends Component
         $dokumen = app(DokumenMahasiswaService::class);
 
         $panelMahasiswa = $this->panelMahasiswaId
-            ? Mahasiswa::with(['user', 'skema', 'biodata', 'hasilPleno'])->find($this->panelMahasiswaId)
+            ? Mahasiswa::with(['user', 'skema', 'biodata', 'hasilPleno', 'penugasanAsesor', 'pengajuanMk.penilaian'])->find($this->panelMahasiswaId)
             : null;
 
         $mahasiswaList = Mahasiswa::where('prodi_id', $this->prodiId)

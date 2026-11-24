@@ -17,6 +17,7 @@ class Penilaian extends Model
         'catatan_reviewer',
         'catatan_kesenjangan',
         'nilai_akhir',
+        'diinput_oleh',
     ];
 
     protected function casts(): array

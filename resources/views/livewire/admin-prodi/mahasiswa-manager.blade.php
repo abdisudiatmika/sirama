@@ -241,6 +241,61 @@
                 @endforeach
             </ul>
 
+            @php $jumlahMk = $panelMahasiswa->pengajuanMk->count(); @endphp
+            <h4 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">Input Nilai Asesor</h4>
+            <div class="rounded-xl border border-slate-200 px-4 py-3">
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach ([1, 2, 3] as $urutan)
+                        @php
+                            $penugasan = $panelMahasiswa->penugasanAsesor->firstWhere('urutan', $urutan);
+                            $terisi = $penugasan ? $panelMahasiswa->pengajuanMk->filter(fn ($p) => $p->penilaian->contains('asesor_id', $penugasan->asesor_id))->count() : 0;
+                        @endphp
+                        <x-badge :color="! $penugasan ? 'slate' : ($jumlahMk && $terisi === $jumlahMk ? 'emerald' : 'amber')">
+                            Asesor {{ $urutan }}: {{ $penugasan ? $terisi.'/'.$jumlahMk : 'belum ditugaskan' }}
+                        </x-badge>
+                    @endforeach
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Unduh template (sudah berisi nilai yang ada), isi kolom Asesor 1–3 dengan nilai 0–100, lalu impor. Nilai langsung tersimpan; sel kosong tidak mengubah nilai yang sudah ada.</p>
+
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <a href="{{ route('admin-prodi.mahasiswa.template-nilai', $panelMahasiswa) }}" class="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Unduh Template Excel
+                    </a>
+                </div>
+
+                <form wire:submit="imporNilai" class="mt-3 flex flex-wrap items-center gap-2">
+                    <input type="file" wire:model="fileNilai" accept=".xlsx" class="block w-full min-w-0 flex-1 text-xs text-slate-600 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
+                    <button type="submit" wire:loading.attr="disabled" wire:target="fileNilai,imporNilai" class="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="imporNilai">Impor Nilai</span>
+                        <span wire:loading wire:target="imporNilai">Mengimpor…</span>
+                    </button>
+                </form>
+                @error('fileNilai') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
+
+                @if ($hasilImporNilai)
+                    @if ($hasilImporNilai['galat'])
+                        <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                            <p class="font-semibold">Tidak ada nilai yang disimpan. Perbaiki file lalu impor lagi:</p>
+                            <ul class="mt-1 list-disc space-y-0.5 pl-4">
+                                @foreach (array_slice($hasilImporNilai['galat'], 0, 10) as $g)
+                                    <li>{{ $g }}</li>
+                                @endforeach
+                            </ul>
+                            @if (count($hasilImporNilai['galat']) > 10)
+                                <p class="mt-1">… dan {{ count($hasilImporNilai['galat']) - 10 }} masalah lain.</p>
+                            @endif
+                        </div>
+                    @else
+                        <div class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                            {{ $hasilImporNilai['tersimpan'] }} nilai diproses, {{ $hasilImporNilai['berubah'] }} di antaranya baru atau berubah.
+                        </div>
+                    @endif
+                @endif
+            </div>
+
             @php $jumlahDiakui = $panelMahasiswa->hasilPleno->where('status', 'Direkognisi')->count(); @endphp
             <h4 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">Unggah SIAKAD</h4>
             <div class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
