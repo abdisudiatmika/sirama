@@ -22,7 +22,7 @@ class StatusBerkasService
 
         $asesorIds = $mahasiswa->penugasanAsesor->pluck('asesor_id');
         $semuaSelesai = $asesorIds->isNotEmpty() && $asesorIds->every(
-            fn ($asesorId) => $mahasiswa->pengajuanMk->every(fn ($p) => $p->selesaiDinilaiOleh($asesorId))
+            fn ($asesorId) => $mahasiswa->pengajuanDirekognisi()->every(fn ($p) => $p->selesaiDinilaiOleh($asesorId))
         );
 
         if ($semuaSelesai && $mahasiswa->status_berkas !== 'selesai_dinilai') {

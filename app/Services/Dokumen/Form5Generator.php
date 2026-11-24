@@ -108,7 +108,9 @@ class Form5Generator extends FormulirWord
                 'lampiranLama',
                 'validasiCpmk',
             ])
-            ->get();
+            ->get()
+            ->filter(fn (PengajuanMk $p) => $mahasiswa->mkDirekognisi($p->matakuliah_id))
+            ->values();
     }
 
     private function tabelMatakuliah(Section $section, PengajuanMk $pengajuan, ?int $asesorId): void

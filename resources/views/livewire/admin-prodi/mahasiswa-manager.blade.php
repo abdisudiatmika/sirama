@@ -241,14 +241,14 @@
                 @endforeach
             </ul>
 
-            @php $jumlahMk = $panelMahasiswa->pengajuanMk->count(); @endphp
+            @php $pengajuanPanel = $panelMahasiswa->pengajuanDirekognisi(); $jumlahMk = $pengajuanPanel->count(); @endphp
             <h4 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">Input Nilai Asesor</h4>
             <div class="rounded-xl border border-slate-200 px-4 py-3">
                 <div class="flex flex-wrap gap-1.5">
                     @foreach ([1, 2, 3] as $urutan)
                         @php
                             $penugasan = $panelMahasiswa->penugasanAsesor->firstWhere('urutan', $urutan);
-                            $terisi = $penugasan ? $panelMahasiswa->pengajuanMk->filter(fn ($p) => $p->penilaian->contains('asesor_id', $penugasan->asesor_id))->count() : 0;
+                            $terisi = $penugasan ? $pengajuanPanel->filter(fn ($p) => $p->penilaian->contains('asesor_id', $penugasan->asesor_id))->count() : 0;
                         @endphp
                         <x-badge :color="! $penugasan ? 'slate' : ($jumlahMk && $terisi === $jumlahMk ? 'emerald' : 'amber')">
                             Asesor {{ $urutan }}: {{ $penugasan ? $terisi.'/'.$jumlahMk : 'belum ditugaskan' }}

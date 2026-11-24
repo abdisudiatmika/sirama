@@ -28,7 +28,7 @@ class DetailMahasiswa extends Component
         $mahasiswa = Mahasiswa::with(['user', 'prodi', 'skema', 'pengajuanMk.matakuliah', 'pengajuanMk.bukti', 'pengajuanMk.penilaian'])
             ->findOrFail($this->mahasiswaId);
 
-        $pengajuanList = $mahasiswa->pengajuanMk->map(function ($p) use ($asesor) {
+        $pengajuanList = $mahasiswa->pengajuanDirekognisi()->map(function ($p) use ($asesor) {
             return (object) [
                 'pengajuan' => $p,
                 'jenis' => $p->jenisPenilaianTersedia(),

@@ -40,7 +40,10 @@ class RekapitulasiService
         $asesorUrutan = $mahasiswa->penugasanAsesor->sortBy('urutan')->values();
 
         $baris = $mahasiswa->skema?->matakuliah->map(function ($mk) use ($mahasiswa, $asesorUrutan) {
-            $pengajuan = $mahasiswa->pengajuanMk->firstWhere('matakuliah_id', $mk->id);
+            // Courses the scheme does not recognise (must be taken in class) still list on the forms,
+            // always as not recognised and without scores, even if the student once submitted them.
+            $direkognisi = (bool) ($mk->pivot->direkognisi ?? true);
+            $pengajuan = $direkognisi ? $mahasiswa->pengajuanMk->firstWhere('matakuliah_id', $mk->id) : null;
 
             $nilaiPerAsesor = $asesorUrutan->map(function ($penugasan) use ($pengajuan) {
                 if (! $pengajuan) {
@@ -69,7 +72,9 @@ class RekapitulasiService
                 'jumlah_penilai' => $rataRata['jumlah_penilai'],
                 'total_asesor' => $asesorUrutan->count(),
                 'usulan' => $usulan,
-                'status' => $hasilPleno?->status,
+                'direkognisi' => $direkognisi,
+                // No evidence submitted, or outside the scheme: not recognised.
+                'status' => $direkognisi && $pengajuan ? $hasilPleno?->status : 'Tidak Direkognisi',
                 // The SK's letter wins over the computed one (only for recognised courses).
                 'huruf' => $this->penilaianService->hurufAkhir(
                     $rataRata['rata_rata'],
@@ -79,7 +84,7 @@ class RekapitulasiService
         }) ?? collect();
 
         if ($hanyaDiajukan) {
-            $baris = $baris->filter(fn ($r) => $r->pengajuan !== null)->values();
+            $baris = $baris->filter(fn ($r) => $r->direkognisi && $r->pengajuan !== null)->values();
         }
 
         return [

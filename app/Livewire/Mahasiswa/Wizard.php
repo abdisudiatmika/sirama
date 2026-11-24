@@ -358,6 +358,9 @@ class Wizard extends Component
             return;
         }
 
+        // Only courses the scheme can recognise may be submitted.
+        abort_unless($mhs->mkDirekognisi($matakuliahId), 403);
+
         $this->lengkapiMatakuliahId = $matakuliahId;
         $this->lengkapiBuktiIds = [];
         $this->lengkapiNilaiAngka = null;
@@ -385,6 +388,11 @@ class Wizard extends Component
         ], [
             'lengkapiBuktiIds.required' => 'Pilih minimal 1 bukti untuk matakuliah ini.',
         ]);
+
+        $mhs = $this->mhs();
+        abort_unless($mhs->mkDirekognisi((int) $this->lengkapiMatakuliahId), 403);
+        // Evidence must be the student's own.
+        abort_unless($mhs->bukti()->whereIn('id', $data['lengkapiBuktiIds'])->count() === count(array_unique($data['lengkapiBuktiIds'])), 403);
 
         $pengajuan = PengajuanMk::updateOrCreate(
             ['mahasiswa_id' => $this->mahasiswaId, 'matakuliah_id' => $this->lengkapiMatakuliahId],
@@ -671,7 +679,7 @@ class Wizard extends Component
     {
         $mhs = $this->mhs();
 
-        $matakuliahOptions = $mhs->skema?->matakuliah()->where('is_aktif', true)->where('dapat_direkognisi', true)->with('cpmk')->orderBy('nama')->get()
+        $matakuliahOptions = $mhs->skema?->matakuliahDirekognisi()->where('is_aktif', true)->where('dapat_direkognisi', true)->with('cpmk')->orderBy('nama')->get()
             ?? collect();
 
         $buktiList = Bukti::where('mahasiswa_id', $this->mahasiswaId)->orderByDesc('created_at')->get();

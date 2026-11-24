@@ -95,7 +95,11 @@ class InputNilai extends Component
             'skemaOptions' => Skema::where('prodi_id', $this->prodiId)->orderBy('nama')->get(),
             'angkatanOptions' => Mahasiswa::where('prodi_id', $this->prodiId)->distinct()->orderByDesc('tahun_masuk')->pluck('tahun_masuk'),
             'jumlahMahasiswa' => (clone $query)->count(),
-            'jumlahBaris' => PengajuanMk::whereIn('mahasiswa_id', (clone $query)->select('id'))->count(),
+            'jumlahBaris' => PengajuanMk::whereIn('mahasiswa_id', (clone $query)->select('id'))
+                ->whereExists(fn ($q) => $q->selectRaw(1)->from('skema_matakuliah')->join('mahasiswa', 'mahasiswa.skema_id', '=', 'skema_matakuliah.skema_id')
+                    ->whereColumn('mahasiswa.id', 'pengajuan_mk.mahasiswa_id')->whereColumn('skema_matakuliah.matakuliah_id', 'pengajuan_mk.matakuliah_id')
+                    ->where('skema_matakuliah.direkognisi', true))
+                ->count(),
             'urlTemplate' => route('admin-prodi.input-nilai.template', array_filter([
                 'prodi' => $this->prodiId,
                 'skema' => $this->filterSkemaId,

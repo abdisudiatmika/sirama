@@ -27,6 +27,9 @@
 
                 <div class="mt-4 flex gap-4 text-sm text-slate-600">
                     <span>{{ $skema->matakuliah_count }} matakuliah</span>
+                    @if ($skema->mk_wajib_count)
+                        <span title="Direkognisi / wajib kuliah">{{ $skema->matakuliah_count - $skema->mk_wajib_count }} direkognisi · {{ $skema->mk_wajib_count }} wajib</span>
+                    @endif
                     <span>{{ $skema->mahasiswa_count }} mahasiswa</span>
                 </div>
 
@@ -69,13 +72,20 @@
             </div>
 
             <div>
-                <label class="mb-1.5 block text-sm font-medium text-slate-700">Matakuliah Anggota Skema</label>
-                <div class="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Matakuliah Anggota Skema</label>
+                <p class="mb-1.5 text-xs text-slate-500">Semua MK anggota tampil di formulir RPL. Centang <b>Wajib kuliah</b> untuk MK yang tidak bisa direkognisi: tidak tampil ke mahasiswa dan selalu tercetak Tidak Direkognisi.</p>
+                <div class="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-3">
                     @forelse ($matakuliahOptions as $mk)
-                        <label class="flex items-center gap-2 text-sm text-slate-700">
-                            <input type="checkbox" wire:model="selectedMatakuliah" value="{{ $mk->id }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600">
-                            {{ $mk->kode }} — {{ $mk->nama }} <span class="text-slate-400">({{ $mk->sks }} SKS)</span>
-                        </label>
+                        <div class="flex items-center justify-between gap-3">
+                            <label class="flex min-w-0 items-center gap-2 text-sm text-slate-700">
+                                <input type="checkbox" wire:model="selectedMatakuliah" value="{{ $mk->id }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600">
+                                <span class="truncate">{{ $mk->kode }} — {{ $mk->nama }} <span class="text-slate-400">({{ $mk->sks }} SKS)</span></span>
+                            </label>
+                            <label class="flex flex-shrink-0 items-center gap-1.5 text-xs text-amber-700">
+                                <input type="checkbox" wire:model="mkWajib" value="{{ $mk->id }}" class="rounded border-amber-300 text-amber-600 focus:ring-amber-600">
+                                Wajib kuliah
+                            </label>
+                        </div>
                     @empty
                         <p class="text-sm text-slate-400">Belum ada matakuliah aktif. Tambahkan matakuliah terlebih dahulu.</p>
                     @endforelse

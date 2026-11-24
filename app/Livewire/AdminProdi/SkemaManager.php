@@ -32,6 +32,9 @@ class SkemaManager extends Component
     /** @var array<int> */
     public array $selectedMatakuliah = [];
 
+    /** @var array<int> members that must be taken in class (not recognisable) */
+    public array $mkWajib = [];
+
     protected function rules(): array
     {
         return [
@@ -40,6 +43,7 @@ class SkemaManager extends Component
             'tahun_akademik' => ['required', 'string', 'max:20'],
             'is_aktif' => ['boolean'],
             'selectedMatakuliah' => ['array'],
+            'mkWajib' => ['array'],
         ];
     }
 
@@ -61,6 +65,7 @@ class SkemaManager extends Component
         $this->tahun_akademik = $skema->tahun_akademik;
         $this->is_aktif = $skema->is_aktif;
         $this->selectedMatakuliah = $skema->matakuliah->pluck('id')->toArray();
+        $this->mkWajib = $skema->matakuliah->filter(fn ($mk) => ! $mk->pivot->direkognisi)->pluck('id')->toArray();
         $this->showModal = true;
     }
 
@@ -68,11 +73,14 @@ class SkemaManager extends Component
     {
         $data = $this->validate();
         $matakuliahIds = $data['selectedMatakuliah'];
-        unset($data['selectedMatakuliah']);
+        $wajib = array_map('intval', $data['mkWajib']);
+        unset($data['selectedMatakuliah'], $data['mkWajib']);
         $data['prodi_id'] = $this->prodiId;
 
         $skema = Skema::updateOrCreate(['id' => $this->editingId], $data);
-        $skema->matakuliah()->sync($matakuliahIds);
+        $skema->matakuliah()->sync(collect($matakuliahIds)->mapWithKeys(
+            fn ($id) => [(int) $id => ['direkognisi' => ! in_array((int) $id, $wajib, true)]]
+        )->all());
 
         session()->flash('success', $this->editingId ? 'Skema berhasil diperbarui.' : 'Skema berhasil ditambahkan.');
         $this->closeModal();
@@ -110,7 +118,7 @@ class SkemaManager extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'nama', 'tahun_akademik', 'selectedMatakuliah']);
+        $this->reset(['editingId', 'nama', 'tahun_akademik', 'selectedMatakuliah', 'mkWajib']);
         $this->jenis = 'RPL';
         $this->is_aktif = true;
         $this->resetErrorBag();
@@ -119,7 +127,7 @@ class SkemaManager extends Component
     public function render()
     {
         $skemaList = Skema::where('prodi_id', $this->prodiId)
-            ->withCount(['matakuliah', 'mahasiswa'])
+            ->withCount(['matakuliah', 'mahasiswa', 'matakuliah as mk_wajib_count' => fn ($q) => $q->where('skema_matakuliah.direkognisi', false)])
             ->orderByDesc('tahun_akademik')
             ->orderBy('nama')
             ->paginate($this->barisPerHalaman());

@@ -44,6 +44,8 @@ class FormPenilaian extends Component
         $asesor = Auth::user()->asesor;
         abort_unless($asesor && $mahasiswa->penugasanAsesor()->where('asesor_id', $asesor->id)->exists(), 403);
         abort_unless($pengajuanMk->mahasiswa_id === $mahasiswa->id, 404);
+        // Courses outside the scheme's recognisable list are kept on record but not assessed.
+        abort_unless($mahasiswa->mkDirekognisi($pengajuanMk->matakuliah_id), 404);
 
         $this->mahasiswaId = $mahasiswa->id;
         $this->pengajuanMkId = $pengajuanMk->id;
@@ -187,7 +189,7 @@ class FormPenilaian extends Component
         }
 
         $mahasiswa = Mahasiswa::with('pengajuanMk')->findOrFail($this->mahasiswaId);
-        $urutan = $mahasiswa->pengajuanMk->pluck('id')->values();
+        $urutan = $mahasiswa->pengajuanDirekognisi()->pluck('id')->values();
         $posisi = $urutan->search($this->pengajuanMkId);
         $nextId = $urutan->get($posisi + 1);
 

@@ -20,7 +20,7 @@ class Dashboard extends Component
         $daftar = $asesor?->penugasan
             ->filter(fn ($p) => in_array($p->mahasiswa->status_berkas, ['diajukan', 'sedang_dinilai', 'selesai_dinilai']))
             ->map(function ($penugasan) use ($asesor) {
-                $pengajuan = $penugasan->mahasiswa->pengajuanMk;
+                $pengajuan = $penugasan->mahasiswa->pengajuanDirekognisi();
                 $total = $pengajuan->count();
                 $selesai = $pengajuan->filter(fn ($p) => $p->selesaiDinilaiOleh($asesor->id))->count();
 

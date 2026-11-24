@@ -78,6 +78,10 @@
                             </td>
                             <td class="px-3 py-3 text-slate-600">{{ $row->matakuliah->skor_minimum }}</td>
                             <td class="px-3 py-3">
+                                @if (! $row->direkognisi || ! $row->pengajuan)
+                                    <span class="text-xs font-medium text-slate-500">Tidak Direkognisi</span>
+                                    <p class="mt-1 text-xs text-slate-400">{{ $row->direkognisi ? 'Tidak diajukan' : 'Di luar MK skema (wajib kuliah)' }}</p>
+                                @else
                                 <select
                                     wire:change="simpanStatus({{ $row->matakuliah->id }}, $event.target.value)"
                                     class="rounded-lg border-0 px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 print:ring-0"
@@ -88,6 +92,7 @@
                                 </select>
                                 @if (! $row->status && $row->usulan)
                                     <p class="mt-1 text-xs text-slate-400">Usulan sistem: {{ $row->usulan }}</p>
+                                @endif
                                 @endif
                             </td>
                         </tr>

@@ -133,7 +133,7 @@ abstract class FormulirTransferSks extends FormulirWord
                 'penilaian' => fn ($q) => $q->where('jenis', $this->jenisPenilaian()),
             ])
             ->get()
-            ->filter(fn (PengajuanMk $p) => $this->termasuk($p))
+            ->filter(fn (PengajuanMk $p) => $mahasiswa->mkDirekognisi($p->matakuliah_id) && $this->termasuk($p))
             ->values();
     }
 

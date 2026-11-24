@@ -263,7 +263,7 @@ class MahasiswaManager extends Component
             return;
         }
 
-        if ($mhs->pengajuanMk->isEmpty()) {
+        if ($mhs->pengajuanDirekognisi()->isEmpty()) {
             session()->flash('error', 'Mahasiswa belum mengajukan matakuliah apa pun, tidak ada yang bisa dinilai.');
 
             return;

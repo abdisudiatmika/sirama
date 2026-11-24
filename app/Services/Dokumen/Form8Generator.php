@@ -147,8 +147,9 @@ class Form8Generator extends FormulirWord
 
     private function keterangan(object $r): string
     {
+        // Not submitted, or outside the scheme: the status column already says Tidak Direkognisi.
         if (! $r->pengajuan) {
-            return 'Tidak diajukan';
+            return '';
         }
 
         if ($r->status || $r->rata_rata === null) {

@@ -58,7 +58,8 @@ class Form2Generator extends FormulirWord
 
         foreach ($this->daftarMatakuliah($mahasiswa)->values() as $i => $mk) {
             [$lebarNo, $lebarKode, $lebarJudul, $lebarPilihan] = array_values(self::KOLOM);
-            $ya = $diajukan->has($mk->id);
+            // Courses outside the scheme's recognisable list are always "Tidak".
+            $ya = $diajukan->has($mk->id) && (bool) ($mk->pivot->direkognisi ?? true);
 
             $tabel->addRow(null, ['cantSplit' => true]);
             $tabel->addCell($lebarNo)->addText((string) ($i + 1), [], $tengah);

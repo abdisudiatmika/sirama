@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\AdminProdi\SkemaManager;
 use App\Models\Asesor;
 use App\Models\Mahasiswa;
 use App\Models\Matakuliah;
@@ -13,7 +14,9 @@ use App\Models\Skema;
 use App\Models\User;
 use App\Services\NilaiAdminService;
 use App\Services\PenilaianService;
+use App\Services\RekapitulasiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -48,6 +51,7 @@ class ImporNilaiAdminTest extends TestCase
 
         foreach (['MKB001' => 'Akuntansi Biaya', 'MKB002' => 'Perpajakan'] as $kode => $nama) {
             $mk = Matakuliah::create(['prodi_id' => $prodi->id, 'kode' => $kode, 'nama' => $nama, 'sks' => 3, 'skor_minimum' => 66, 'dapat_direkognisi' => true, 'is_aktif' => true]);
+            $skema->matakuliah()->attach($mk->id, ['direkognisi' => true]);
             $p = PengajuanMk::create(['mahasiswa_id' => $this->mahasiswa->id, 'matakuliah_id' => $mk->id, 'nilai_mandiri_angka' => 80, 'nilai_mandiri_huruf' => 'AB']);
             $bukti = $this->mahasiswa->bukti()->create(['kategori' => 'informal', 'jenis_bukti' => 'Sertifikat', 'judul' => 'Pelatihan', 'url' => 'https://contoh.test/'.$kode]);
             $p->bukti()->attach($bukti->id);
@@ -171,5 +175,53 @@ class ImporNilaiAdminTest extends TestCase
 
         $this->assertStringContainsString('9999999999', $hasil['galat'][0]);
         $this->assertSame(0, Penilaian::count());
+    }
+
+    public function test_mk_wajib_kuliah_tidak_dinilai_dan_selalu_tidak_direkognisi(): void
+    {
+        $skema = $this->mahasiswa->skema;
+        $wajib = Matakuliah::create(['prodi_id' => $this->mahasiswa->prodi_id, 'kode' => 'MKW001', 'nama' => 'Akuntansi Internasional', 'sks' => 3, 'skor_minimum' => 66, 'dapat_direkognisi' => true, 'is_aktif' => true]);
+        $skema->matakuliah()->attach($wajib->id, ['direkognisi' => false]);
+        PengajuanMk::create(['mahasiswa_id' => $this->mahasiswa->id, 'matakuliah_id' => $wajib->id, 'nilai_mandiri_angka' => 80, 'nilai_mandiri_huruf' => 'AB']);
+        $mhs = Mahasiswa::find($this->mahasiswa->id);
+
+        $this->assertFalse($mhs->mkDirekognisi($wajib->id));
+        $this->assertCount(2, $mhs->pengajuanDirekognisi());
+        $this->assertSame(2, $skema->matakuliahDirekognisi()->count());
+
+        // The template lists only the two recognisable courses.
+        $sheet = app(NilaiAdminService::class)->template($mhs)->getActiveSheet();
+        $this->assertSame('MKB002', $sheet->getCell('B9')->getValue());
+        $this->assertEmpty($sheet->getCell('B10')->getValue());
+
+        // The recap still lists the wajib course, always as not recognised.
+        $baris = app(RekapitulasiService::class)->untuk($mhs)['baris'];
+        $this->assertCount(3, $baris);
+        $rowWajib = $baris->first(fn ($r) => $r->matakuliah->id === $wajib->id);
+        $this->assertSame('Tidak Direkognisi', $rowWajib->status);
+        $this->assertNull($rowWajib->pengajuan);
+
+        // Finishing the two recognisable courses completes the file.
+        $hasil = app(NilaiAdminService::class)->impor($mhs, $this->fileTerisi([0 => ['E' => 80, 'F' => 80, 'G' => 80], 1 => ['E' => 80, 'F' => 80, 'G' => 80]]), $this->admin->id);
+        $this->assertSame([], $hasil['galat']);
+        $this->assertSame('selesai_dinilai', $mhs->fresh()->status_berkas);
+    }
+
+    public function test_menu_skema_menyimpan_tanda_wajib_kuliah(): void
+    {
+        $skema = $this->mahasiswa->skema;
+        $this->admin->prodiDikelola()->attach($this->mahasiswa->prodi_id);
+        [$satu, $dua] = $skema->matakuliah()->orderBy('kode')->pluck('matakuliah.id')->all();
+
+        Livewire::actingAs($this->admin)
+            ->test(SkemaManager::class)
+            ->call('edit', $skema->id)
+            ->assertSet('mkWajib', [])
+            ->set('mkWajib', [(string) $dua])
+            ->call('simpan')
+            ->assertHasNoErrors()
+            ->assertSee('1 direkognisi · 1 wajib');
+
+        $this->assertSame([$satu], $skema->fresh()->matakuliahDirekognisi()->pluck('matakuliah.id')->all());
     }
 }

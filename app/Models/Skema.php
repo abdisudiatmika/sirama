@@ -33,7 +33,13 @@ class Skema extends Model
 
     public function matakuliah(): BelongsToMany
     {
-        return $this->belongsToMany(Matakuliah::class, 'skema_matakuliah');
+        return $this->belongsToMany(Matakuliah::class, 'skema_matakuliah')->withPivot('direkognisi');
+    }
+
+    /** Courses of this scheme that can be recognised (the rest must be taken in class). */
+    public function matakuliahDirekognisi(): BelongsToMany
+    {
+        return $this->matakuliah()->wherePivot('direkognisi', true);
     }
 
     public function mahasiswa(): HasMany

@@ -46,7 +46,7 @@ class NilaiAdminService
     {
         $mahasiswa->loadMissing(self::RELASI);
 
-        return $this->urutkan($mahasiswa->pengajuanMk)->map(fn (PengajuanMk $p) => (object) [
+        return $this->urutkan($mahasiswa->pengajuanDirekognisi())->map(fn (PengajuanMk $p) => (object) [
             'pengajuan' => $p,
             'nilai' => collect([1, 2, 3])->mapWithKeys(fn ($urutan) => [$urutan => $this->nilaiAsesor($mahasiswa, $p, $urutan)]),
         ]);
@@ -127,7 +127,7 @@ class NilaiAdminService
             return $this->gagal('Kolom "Kode MK" tidak ditemukan. Gunakan template yang diunduh dari sistem.');
         }
 
-        $pengajuan = $mahasiswa->pengajuanMk->keyBy(fn ($p) => $p->matakuliah->kode);
+        $pengajuan = $mahasiswa->pengajuanDirekognisi()->keyBy(fn ($p) => $p->matakuliah->kode);
         $galat = [];
         $rencana = [];
 
@@ -138,7 +138,7 @@ class NilaiAdminService
             }
             $p = $pengajuan->get($kode);
             if (! $p) {
-                $galat[] = "Baris {$r}: kode MK {$kode} tidak termasuk mata kuliah yang diajukan mahasiswa ini.";
+                $galat[] = "Baris {$r}: kode MK {$kode} ".$this->alasanDitolak($mahasiswa, $kode).'.';
 
                 continue;
             }
@@ -185,7 +185,7 @@ class NilaiAdminService
         $r = 6;
         foreach ($mahasiswa as $m) {
             $nama = collect([1, 2, 3])->map(fn ($u) => $m->penugasanAsesor->firstWhere('urutan', $u)?->asesor->user->name ?? '(belum ditugaskan)');
-            foreach ($this->urutkan($m->pengajuanMk) as $p) {
+            foreach ($this->urutkan($m->pengajuanDirekognisi()) as $p) {
                 $sheet->setCellValue("A{$r}", $r - 5);
                 $sheet->setCellValueExplicit("B{$r}", $m->nim, DataType::TYPE_STRING);
                 $sheet->setCellValue("C{$r}", $m->user->name);
@@ -250,9 +250,9 @@ class NilaiAdminService
 
                 continue;
             }
-            $p = $m->pengajuanMk->first(fn ($x) => $x->matakuliah->kode === $kode);
+            $p = $m->pengajuanDirekognisi()->first(fn ($x) => $x->matakuliah->kode === $kode);
             if (! $p) {
-                $galat[] = "Baris {$r}: kode MK {$kode} tidak termasuk mata kuliah yang diajukan {$m->user->name}.";
+                $galat[] = "Baris {$r}: kode MK {$kode} ".$this->alasanDitolak($m, $kode)." ({$m->user->name}).";
 
                 continue;
             }
@@ -331,6 +331,13 @@ class NilaiAdminService
             }
             $rencana[] = [$p, $asesorId, round((float) $teks, 2), $m];
         }
+    }
+
+    private function alasanDitolak(Mahasiswa $m, string $kode): string
+    {
+        return $m->pengajuanMk->contains(fn ($p) => $p->matakuliah->kode === $kode)
+            ? 'berada di luar MK yang direkognisi skema mahasiswa ini (wajib kuliah), nilainya tidak diinput'
+            : 'tidak termasuk mata kuliah yang diajukan';
     }
 
     /** Formal and/or informal, from the course's evidence; otherwise what already exists, else by prior-course data. */

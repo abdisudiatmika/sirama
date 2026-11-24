@@ -68,8 +68,8 @@ class MonitoringPenilaian extends Component
 
         $mahasiswaList->getCollection()->transform(function ($mhs) {
             $mhs->progresAsesor = $mhs->penugasanAsesor->map(function ($penugasan) use ($mhs) {
-                $total = $mhs->pengajuanMk->count();
-                $selesai = $mhs->pengajuanMk->filter(fn ($p) => $p->selesaiDinilaiOleh($penugasan->asesor_id))->count();
+                $total = $mhs->pengajuanDirekognisi()->count();
+                $selesai = $mhs->pengajuanDirekognisi()->filter(fn ($p) => $p->selesaiDinilaiOleh($penugasan->asesor_id))->count();
 
                 return (object) [
                     'urutan' => $penugasan->urutan,

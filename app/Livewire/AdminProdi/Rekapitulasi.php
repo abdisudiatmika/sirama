@@ -26,6 +26,12 @@ class Rekapitulasi extends Component
 
     public function simpanStatus(int $matakuliahId, ?string $status): void
     {
+        if (! Mahasiswa::findOrFail($this->mahasiswaId)->mkDirekognisi($matakuliahId)) {
+            session()->flash('error', 'Mata kuliah ini di luar MK yang direkognisi skema, statusnya selalu Tidak Direkognisi.');
+
+            return;
+        }
+
         HasilPleno::updateOrCreate(
             ['mahasiswa_id' => $this->mahasiswaId, 'matakuliah_id' => $matakuliahId],
             [
