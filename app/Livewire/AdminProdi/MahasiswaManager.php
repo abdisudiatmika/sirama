@@ -46,6 +46,18 @@ class MahasiswaManager extends Component
 
     public string $search = '';
 
+    public ?int $filterSkemaId = null;
+
+    public ?int $filterAngkatan = null;
+
+    public string $filterStatus = '';
+
+    /** '' | lengkap (3 asesor) | kurang (1–2) | belum (none) */
+    public string $filterAsesor = '';
+
+    /** '' | aktif | terkunci */
+    public string $filterAkses = '';
+
     public ?string $generatedPassword = null;
 
     public ?string $generatedFor = null;
@@ -87,8 +99,26 @@ class MahasiswaManager extends Component
         ];
     }
 
-    public function updatingSearch(): void
+    public function updating(string $property): void
     {
+        if ($property === 'search' || str_starts_with($property, 'filter')) {
+            $this->resetPage();
+        }
+    }
+
+    public function updatedProdiId(): void
+    {
+        if (! $this->prodiOptions()->pluck('id')->contains($this->prodiId)) {
+            abort(403);
+        }
+
+        // Another prodi has other schemes, so its filters start over.
+        $this->resetFilter();
+    }
+
+    public function resetFilter(): void
+    {
+        $this->reset(['search', 'filterSkemaId', 'filterAngkatan', 'filterStatus', 'filterAsesor', 'filterAkses']);
         $this->resetPage();
     }
 
@@ -379,15 +409,24 @@ class MahasiswaManager extends Component
 
         $mahasiswaList = Mahasiswa::where('prodi_id', $this->prodiId)
             ->with(['user', 'skema', 'penugasanAsesor.asesor.user'])
-            ->when($this->search, function ($q) {
-                $q->whereHas('user', fn ($uq) => $uq->where('name', 'like', "%{$this->search}%"))
-                    ->orWhere('nim', 'like', "%{$this->search}%");
-            })
+            // Grouped so the name/NIM match never escapes the prodi filter.
+            ->when($this->search, fn ($q) => $q->where(fn ($w) => $w
+                ->whereHas('user', fn ($uq) => $uq->where('name', 'like', "%{$this->search}%"))
+                ->orWhere('nim', 'like', "%{$this->search}%")))
+            ->when($this->filterSkemaId, fn ($q) => $q->where('skema_id', $this->filterSkemaId))
+            ->when($this->filterAngkatan, fn ($q) => $q->where('tahun_masuk', $this->filterAngkatan))
+            ->when($this->filterStatus, fn ($q) => $q->where('status_berkas', $this->filterStatus))
+            ->when($this->filterAsesor === 'lengkap', fn ($q) => $q->has('penugasanAsesor', '>=', 3))
+            ->when($this->filterAsesor === 'kurang', fn ($q) => $q->has('penugasanAsesor', '>=', 1)->has('penugasanAsesor', '<', 3))
+            ->when($this->filterAsesor === 'belum', fn ($q) => $q->doesntHave('penugasanAsesor'))
+            ->when($this->filterAkses, fn ($q) => $q->whereHas('user', fn ($uq) => $uq->where('is_locked', $this->filterAkses === 'terkunci')))
             ->orderByDesc('tahun_masuk')
             ->orderBy('nim')
             ->paginate($this->barisPerHalaman());
 
         $skemaOptions = Skema::where('prodi_id', $this->prodiId)->where('is_aktif', true)->orderBy('nama')->get();
+        $filterSkemaOptions = Skema::where('prodi_id', $this->prodiId)->orderBy('nama')->get();
+        $angkatanOptions = Mahasiswa::where('prodi_id', $this->prodiId)->distinct()->orderByDesc('tahun_masuk')->pluck('tahun_masuk');
 
         $asesorOptions = Asesor::with('user')
             ->where('is_aktif', true)
@@ -401,6 +440,9 @@ class MahasiswaManager extends Component
         return view('livewire.admin-prodi.mahasiswa-manager', [
             'mahasiswaList' => $mahasiswaList,
             'skemaOptions' => $skemaOptions,
+            'filterSkemaOptions' => $filterSkemaOptions,
+            'angkatanOptions' => $angkatanOptions,
+            'adaFilter' => $this->search !== '' || $this->filterSkemaId || $this->filterAngkatan || $this->filterStatus !== '' || $this->filterAsesor !== '' || $this->filterAkses !== '',
             'asesorOptions' => $asesorOptions,
             'prodiOptions' => $this->prodiOptions(),
             'panelMahasiswa' => $panelMahasiswa,

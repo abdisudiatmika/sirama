@@ -26,8 +26,47 @@
         </div>
     @endif
 
-    <div class="mb-4">
-        <input wire:model.live.debounce.400ms="search" type="text" placeholder="Cari nama atau NIM..." class="w-full max-w-sm rounded-lg border-0 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+    <div class="mb-4 space-y-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <input wire:model.live.debounce.400ms="search" type="text" placeholder="Cari nama atau NIM..." class="w-full rounded-lg border-0 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 lg:col-span-1">
+            <select wire:model.live="filterSkemaId" class="rounded-lg border-0 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                <option value="">Semua Skema</option>
+                @foreach ($filterSkemaOptions as $skema)
+                    <option value="{{ $skema->id }}">{{ $skema->nama }}{{ $skema->is_aktif ? '' : ' (nonaktif)' }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="filterAngkatan" class="rounded-lg border-0 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                <option value="">Semua Angkatan</option>
+                @foreach ($angkatanOptions as $tahun)
+                    <option value="{{ $tahun }}">{{ $tahun }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="filterStatus" class="rounded-lg border-0 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                <option value="">Semua Status Berkas</option>
+                <option value="draft">Draft</option>
+                <option value="diajukan">Diajukan</option>
+                <option value="sedang_dinilai">Sedang Dinilai</option>
+                <option value="selesai_dinilai">Selesai Dinilai</option>
+                <option value="dikembalikan">Dikembalikan</option>
+            </select>
+            <select wire:model.live="filterAsesor" class="rounded-lg border-0 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                <option value="">Semua Asesor</option>
+                <option value="lengkap">Asesor lengkap (3/3)</option>
+                <option value="kurang">Asesor belum lengkap</option>
+                <option value="belum">Belum ada asesor</option>
+            </select>
+            <select wire:model.live="filterAkses" class="rounded-lg border-0 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+                <option value="">Semua Akses</option>
+                <option value="aktif">Aktif</option>
+                <option value="terkunci">Terkunci</option>
+            </select>
+        </div>
+        <div class="flex items-center gap-3 text-sm text-slate-600">
+            <span><span class="font-semibold text-slate-900">{{ $mahasiswaList->total() }}</span> mahasiswa</span>
+            @if ($adaFilter)
+                <button wire:click="resetFilter" class="font-medium text-indigo-600 hover:text-indigo-500">Hapus filter</button>
+            @endif
+        </div>
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -93,7 +132,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-8 text-center text-slate-400">Belum ada mahasiswa untuk prodi ini.</td>
+                            <td colspan="7" class="px-6 py-8 text-center text-slate-400">{{ $adaFilter ? 'Tidak ada mahasiswa yang cocok dengan filter.' : 'Belum ada mahasiswa untuk prodi ini.' }}</td>
                         </tr>
                     @endforelse
                 </tbody>
