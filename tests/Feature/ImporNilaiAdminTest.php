@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\NilaiAdminService;
 use App\Services\PenilaianService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
@@ -112,6 +113,56 @@ class ImporNilaiAdminTest extends TestCase
         $this->assertCount(1, $hasil['galat']);
         $this->assertStringContainsString('0–100', $hasil['galat'][0]);
         $this->assertSame(0, Penilaian::count());
+    }
+
+    /** Fills the bulk template: data rows start at 6, assessor columns F–H, NIM in B. */
+    private function fileMassal(array $nilai, array $tambahan = []): string
+    {
+        $service = app(NilaiAdminService::class);
+        $book = $service->templateMassal($service->mahasiswaMassal($this->mahasiswa->prodi_id), 'uji');
+        $sheet = $book->getActiveSheet();
+        foreach ($nilai as $baris => $kolom) {
+            foreach ($kolom as $huruf => $v) {
+                $sheet->setCellValue($huruf.(6 + $baris), $v);
+            }
+        }
+        foreach ($tambahan as $i => [$nim, $kode]) {
+            $sheet->setCellValueExplicit('B'.(20 + $i), $nim, DataType::TYPE_STRING);
+            $sheet->setCellValue('D'.(20 + $i), $kode);
+            $sheet->setCellValue('F'.(20 + $i), 80);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'massal').'.xlsx';
+        (new Xlsx($book))->save($path);
+
+        return $path;
+    }
+
+    public function test_impor_massal_diperiksa_dulu_lalu_hanya_nilai_berubah_disimpan(): void
+    {
+        $service = app(NilaiAdminService::class);
+        $prodiId = $this->mahasiswa->prodi_id;
+
+        $cek = $service->periksaMassal($prodiId, $this->fileMassal([0 => ['F' => 80, 'G' => 82, 'H' => 84], 1 => ['F' => 70, 'G' => 71, 'H' => 72]]));
+        $this->assertSame([], $cek['galat']);
+        $this->assertSame(6, $cek['ringkasan']['berubah']);
+        $this->assertSame(0, Penilaian::count(), 'pratinjau tidak boleh menyimpan');
+
+        $this->assertSame(6, $service->simpanRencana($cek['rencana'], $this->admin->id));
+        $this->assertSame('selesai_dinilai', $this->mahasiswa->fresh()->status_berkas);
+
+        // The re-downloaded template carries the same scores: nothing to change.
+        $ulang = $service->periksaMassal($prodiId, $this->fileMassal([]));
+        $this->assertSame(6, $ulang['ringkasan']['nilai']);
+        $this->assertSame(0, $ulang['ringkasan']['berubah']);
+    }
+
+    public function test_impor_massal_menolak_nim_dan_kode_asing(): void
+    {
+        $cek = app(NilaiAdminService::class)->periksaMassal($this->mahasiswa->prodi_id, $this->fileMassal([0 => ['F' => 80]], [['9999999999', 'MKB001'], ['2026010001', 'MKX999']]));
+
+        $this->assertCount(2, $cek['galat']);
+        $this->assertStringContainsString('NIM 9999999999', $cek['galat'][0]);
+        $this->assertStringContainsString('MKX999', $cek['galat'][1]);
     }
 
     public function test_template_mahasiswa_lain_ditolak(): void
