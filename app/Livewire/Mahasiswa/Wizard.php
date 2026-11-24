@@ -154,6 +154,19 @@ class Wizard extends Component
         return Mahasiswa::with('skema.matakuliah.cpmk')->findOrFail($this->mahasiswaId);
     }
 
+    /**
+     * Scopes a submissions query to this student's courses that the scheme can
+     * recognise. Courses marked "wajib kuliah" after the student picked them stay
+     * on record, but the student no longer sees them or has to complete them.
+     */
+    private function pengajuanSaya(): \Closure
+    {
+        $ids = Mahasiswa::findOrFail($this->mahasiswaId)->idMkDirekognisi();
+
+        return fn ($q) => $q->where('mahasiswa_id', $this->mahasiswaId)
+            ->when($ids !== null, fn ($w) => $w->whereIn('matakuliah_id', $ids));
+    }
+
     private function isReadOnly(): bool
     {
         return ! in_array($this->mhs()->status_berkas, ['draft', 'dikembalikan']);
@@ -426,11 +439,11 @@ class Wizard extends Component
 
     public function lanjutKeForm4(): void
     {
-        $belumLengkap = PengajuanMk::where('mahasiswa_id', $this->mahasiswaId)
+        $belumLengkap = PengajuanMk::where($this->pengajuanSaya())
             ->where(fn ($q) => $q->whereNull('nilai_mandiri_angka')->orWhereDoesntHave('bukti'))
             ->exists();
 
-        if (PengajuanMk::where('mahasiswa_id', $this->mahasiswaId)->count() === 0) {
+        if (PengajuanMk::where($this->pengajuanSaya())->count() === 0) {
             session()->flash('error', 'Pilih minimal 1 matakuliah untuk direkognisi.');
 
             return;
@@ -514,7 +527,7 @@ class Wizard extends Component
 
     public function setSelfAssessment(int $selfAssessmentId, string $status): void
     {
-        SelfAssessment::whereHas('pengajuanMk', fn ($q) => $q->where('mahasiswa_id', $this->mahasiswaId))
+        SelfAssessment::whereHas('pengajuanMk', $this->pengajuanSaya())
             ->where('id', $selfAssessmentId)
             ->update(['status' => $status]);
     }
@@ -522,19 +535,19 @@ class Wizard extends Component
     public function centangSemuaMampu(int $pengajuanMkId): void
     {
         SelfAssessment::where('pengajuan_mk_id', $pengajuanMkId)
-            ->whereHas('pengajuanMk', fn ($q) => $q->where('mahasiswa_id', $this->mahasiswaId))
+            ->whereHas('pengajuanMk', $this->pengajuanSaya())
             ->update(['status' => 'mampu']);
     }
 
     public function centangSemuaMampuGlobal(): void
     {
-        SelfAssessment::whereHas('pengajuanMk', fn ($q) => $q->where('mahasiswa_id', $this->mahasiswaId))
+        SelfAssessment::whereHas('pengajuanMk', $this->pengajuanSaya())
             ->update(['status' => 'mampu']);
     }
 
     public function lanjutKeForm6(): void
     {
-        $belum = SelfAssessment::whereHas('pengajuanMk', fn ($q) => $q->where('mahasiswa_id', $this->mahasiswaId))
+        $belum = SelfAssessment::whereHas('pengajuanMk', $this->pengajuanSaya())
             ->whereNull('status')
             ->exists();
 
@@ -580,7 +593,7 @@ class Wizard extends Component
         if ($this->editingMkAsalId) {
             $this->mkAsalMilikSendiri()->whereKey($this->editingMkAsalId)->update($isi);
         } else {
-            abort_unless(PengajuanMk::where('mahasiswa_id', $this->mahasiswaId)->whereKey($this->mkAsalPengajuanMkId)->exists(), 403);
+            abort_unless(PengajuanMk::where($this->pengajuanSaya())->whereKey($this->mkAsalPengajuanMkId)->exists(), 403);
             MkAsal::create($isi + ['pengajuan_mk_id' => $this->mkAsalPengajuanMkId]);
         }
 
@@ -629,7 +642,7 @@ class Wizard extends Component
 
     public function pengajuanBerbuktiFormal(): Collection
     {
-        return PengajuanMk::where('mahasiswa_id', $this->mahasiswaId)
+        return PengajuanMk::where($this->pengajuanSaya())
             ->with(['matakuliah', 'bukti', 'mkAsal'])
             ->get()
             ->filter(fn ($p) => $p->bukti->contains('kategori', 'formal'));
@@ -684,7 +697,7 @@ class Wizard extends Component
 
         $buktiList = Bukti::where('mahasiswa_id', $this->mahasiswaId)->orderByDesc('created_at')->get();
 
-        $pengajuanList = PengajuanMk::where('mahasiswa_id', $this->mahasiswaId)
+        $pengajuanList = PengajuanMk::where($this->pengajuanSaya())
             ->with(['matakuliah', 'bukti', 'selfAssessment.cpmk', 'mkAsal'])
             ->get()
             ->keyBy('matakuliah_id');
