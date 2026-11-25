@@ -23,6 +23,48 @@ class AsesorController extends Controller
         return response()->file($path, ['Cache-Control' => 'private, max-age=300']);
     }
 
+    /** One signature as a file named after the assessor. */
+    public function unduhTandaTangan(Asesor $asesor)
+    {
+        $asesor->loadMissing('user');
+        $path = $asesor->pathTandaTangan();
+        abort_unless($path, 404);
+
+        return response()->download($path, $this->namaFileTtd($asesor, $path))->setPrivate();
+    }
+
+    /** Every active assessor's signature in one ZIP, one file per assessor. */
+    public function unduhSemuaTandaTangan()
+    {
+        $asesor = Asesor::with('user')->where('is_aktif', true)->get()
+            ->filter(fn ($a) => $a->pathTandaTangan())
+            ->sortBy(fn ($a) => $a->user->name);
+        abort_if($asesor->isEmpty(), 404, 'Belum ada tanda tangan asesor.');
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'ttd');
+        $zip = new \ZipArchive;
+        $zip->open($zipPath, \ZipArchive::OVERWRITE);
+        $dipakai = [];
+        foreach ($asesor as $a) {
+            $nama = $this->namaFileTtd($a, $a->pathTandaTangan());
+            // Two assessors with the same name keep separate files.
+            $nama = isset($dipakai[$nama]) ? pathinfo($nama, PATHINFO_FILENAME).'-'.$a->id.'.'.pathinfo($nama, PATHINFO_EXTENSION) : $nama;
+            $dipakai[$nama] = true;
+            $zip->addFile($a->pathTandaTangan(), $nama);
+        }
+        $zip->close();
+
+        return response()
+            ->download($zipPath, 'TTD-Asesor-'.now('Asia/Makassar')->format('Ymd-Hi').'.zip', ['Content-Type' => 'application/zip'])
+            ->setPrivate()
+            ->deleteFileAfterSend();
+    }
+
+    private function namaFileTtd(Asesor $asesor, string $path): string
+    {
+        return 'TTD-'.str($asesor->user->name)->before(',')->slug().'.'.pathinfo($path, PATHINFO_EXTENSION);
+    }
+
     /** All active assessors with their contact data and signature image, one row each. */
     public function ekspor()
     {

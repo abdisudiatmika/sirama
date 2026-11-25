@@ -29,7 +29,9 @@ Route::middleware(['auth', 'role:admin_prodi'])
         Route::get('/skema', SkemaManager::class)->name('skema');
         Route::get('/asesor', AsesorDirectory::class)->name('asesor');
         Route::get('/asesor/ekspor', [AsesorController::class, 'ekspor'])->name('asesor.ekspor');
+        Route::get('/asesor/tanda-tangan/unduh-semua', [AsesorController::class, 'unduhSemuaTandaTangan'])->name('asesor.ttd-semua');
         Route::get('/asesor/{asesor}/tanda-tangan', [AsesorController::class, 'tandaTangan'])->name('asesor.ttd');
+        Route::get('/asesor/{asesor}/tanda-tangan/unduh', [AsesorController::class, 'unduhTandaTangan'])->name('asesor.ttd-unduh');
         Route::get('/mahasiswa', MahasiswaManager::class)->name('mahasiswa');
         Route::get('/mahasiswa/{mahasiswa}/form/{nomor}', FormulirWordController::class)->whereNumber('nomor')->name('mahasiswa.formulir');
         Route::get('/mahasiswa/{mahasiswa}/unduh-semua', DokumenZipController::class)->name('mahasiswa.dokumen-zip');

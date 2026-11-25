@@ -119,6 +119,24 @@ class TandaTanganAsesorTest extends TestCase
         $this->assertStringContainsString('word/media/', $this->isiZip($dengan));
     }
 
+    public function test_admin_mengunduh_ttd_satu_per_satu_dan_zip(): void
+    {
+        $this->actingAs($this->admin)->get(route('admin-prodi.asesor.ttd-semua'))->assertNotFound();
+
+        app(TandaTanganAsesorService::class)->simpan($this->asesor, UploadedFile::fake()->image('ttd.png', 300, 100));
+        $user = User::factory()->create(['name' => 'Dr. Asesor Dua, S.E.']);
+        $dua = Asesor::create(['user_id' => $user->id, 'is_aktif' => true]);
+        app(TandaTanganAsesorService::class)->simpan($dua, UploadedFile::fake()->image('ttd.jpg', 300, 100));
+
+        $this->actingAs($this->admin)->get(route('admin-prodi.asesor.ttd-unduh', $dua))
+            ->assertOk()->assertDownload('TTD-dr-asesor-dua.jpg');
+
+        $respon = $this->actingAs($this->admin)->get(route('admin-prodi.asesor.ttd-semua'))->assertOk();
+        $this->assertSame(['TTD-asesor-satu.png', 'TTD-dr-asesor-dua.jpg'], explode("\n", $this->isiZip($respon->baseResponse->getFile()->getPathname())));
+
+        $this->actingAs($this->asesor->user)->get(route('admin-prodi.asesor.ttd-semua'))->assertForbidden();
+    }
+
     private function isiZip(string $path): string
     {
         $zip = new \ZipArchive;
